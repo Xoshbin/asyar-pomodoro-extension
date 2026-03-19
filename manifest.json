@@ -1,0 +1,19 @@
+{
+  "id": "org.asyar.pomodoro",
+  "name": "Pomodoro",
+  "version": "1.0.0",
+  "description": "Pomodoro extension for Asyar",
+  "author": "Developer",
+  "main": "dist/index.js",
+  "searchable": true,
+  "type": "view",
+  "defaultView": "DefaultView",
+  "commands": [
+    {
+      "id": "open",
+      "name": "Open Pomodoro",
+      "description": "Pomodoro extension for Asyar",
+      "resultType": "view"
+    }
+  ]
+}
