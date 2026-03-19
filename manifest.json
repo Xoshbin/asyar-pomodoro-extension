@@ -1,19 +1,32 @@
 {
   "id": "org.asyar.pomodoro",
-  "name": "Pomodoro",
+  "name": "Pomodoro Timer",
   "version": "1.0.0",
-  "description": "Pomodoro extension for Asyar",
-  "author": "Developer",
-  "main": "dist/index.js",
+  "description": "Focus timer using the Pomodoro technique. 25-minute work sessions with short and long breaks.",
+  "author": "Asyar",
   "searchable": true,
-  "type": "view",
-  "defaultView": "DefaultView",
+  "defaultView": "TimerView",
+  "permissions": ["notifications:send", "clipboard:write", "shell:open-url"],
   "commands": [
     {
-      "id": "open",
-      "name": "Open Pomodoro",
-      "description": "Pomodoro extension for Asyar",
-      "resultType": "view"
+      "id": "start-timer",
+      "name": "Start Pomodoro",
+      "description": "Start a 25-minute focus session",
+      "resultType": "no-view",
+      "view": "NoView"
+    },
+    {
+      "id": "open-timer",
+      "name": "Open Pomodoro Timer",
+      "description": "Open the timer view with live countdown",
+      "resultType": "view",
+      "view": "TimerView"
+    },
+    {
+      "id": "timer-status",
+      "name": "Pomodoro Status",
+      "description": "Check current timer status",
+      "resultType": "result"
     }
   ]
 }
