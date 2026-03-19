@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       asyar-sdk:
-        specifier: file:../../asyar-sdk
-        version: file:../../asyar-sdk
+        specifier: ^1.0.0
+        version: 1.0.0
       svelte:
         specifier: ^5.0.0
         version: 5.54.0
@@ -493,8 +493,8 @@ packages:
     resolution: {integrity: sha512-Z/ZeOgVl7bcSYZ/u/rh0fOpvEpq//LZmdbkXyc7syVzjPAhfOa9ebsdTSjEBDU4vs5nC98Kfduj1uFo0qyET3g==}
     engines: {node: '>= 0.4'}
 
-  asyar-sdk@file:../../asyar-sdk:
-    resolution: {directory: ../../asyar-sdk, type: directory}
+  asyar-sdk@1.0.0:
+    resolution: {integrity: sha512-i5jHdFdydPsIwH6mUyQvqHeC0ng0+Kims5Do3djxPXKbuhG79wOA+1AkU0eWjqbcEKKEvo5+5W6DvKXNvyeP/Q==}
     hasBin: true
 
   axobject-query@4.1.0:
@@ -1355,7 +1355,7 @@ snapshots:
 
   aria-query@5.3.1: {}
 
-  asyar-sdk@file:../../asyar-sdk:
+  asyar-sdk@1.0.0:
     dependencies:
       adm-zip: 0.5.16
       chalk: 5.6.2
