@@ -1,4 +1,4 @@
-import type { INotificationService } from 'asyar-api';
+import type { INotificationService } from 'asyar-sdk';
 import type { TimerPhase } from './timerEngine';
 import { formatTime } from './timerEngine';
 

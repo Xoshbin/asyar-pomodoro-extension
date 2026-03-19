@@ -10,7 +10,7 @@
     ActionContext, ClipboardItemType,
     type INotificationService, type IActionService,
     type IClipboardHistoryService,
-  } from 'asyar-api';
+  } from 'asyar-sdk';
   import { notifyPaused } from '../lib/notifications';
 
   import CircularProgress  from '../components/CircularProgress.svelte';

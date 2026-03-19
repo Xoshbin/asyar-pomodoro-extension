@@ -21,7 +21,7 @@ import {
   type INotificationService,
   type IActionService,
   type IClipboardHistoryService,
-} from 'asyar-api';
+} from 'asyar-sdk';
 
 import {
   init as initTimer,

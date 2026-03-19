@@ -9,9 +9,9 @@
 // at startup and never change.
 // ---------------------------------------------------------------------------
 
-import { ActionContext, ClipboardItemType, type IActionService, type IClipboardHistoryService } from 'asyar-api';
+import { ActionContext, ClipboardItemType, type IActionService, type IClipboardHistoryService } from 'asyar-sdk';
 
-/** Send asyar:api:opener:open directly — MessageBroker is not in the public asyar-api export. */
+/** Send asyar:api:opener:open directly — MessageBroker is not in the public asyar-sdk export. */
 function openUrl(url: string, extensionId: string): void {
   const messageId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   window.parent.postMessage(
