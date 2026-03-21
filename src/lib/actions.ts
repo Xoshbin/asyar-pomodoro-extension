@@ -9,7 +9,7 @@
 // at startup and never change.
 // ---------------------------------------------------------------------------
 
-import { ActionContext, ClipboardItemType, type IActionService, type IClipboardHistoryService } from 'asyar-sdk';
+import { ActionContext, ActionCategory, ClipboardItemType, type IActionService, type IClipboardHistoryService } from 'asyar-sdk';
 
 /** Send asyar:api:opener:open directly — MessageBroker is not in the public asyar-sdk export. */
 function openUrl(url: string, extensionId: string): void {
@@ -83,7 +83,8 @@ export function setupGlobalActions(
     id: ACTION_COPY_SUMMARY,
     title: 'Copy Session Summary',
     description: "Copy today's Pomodoro summary to clipboard",
-    category: 'Pomodoro Timer',
+    icon: '📋',
+    category: 'History',
     extensionId,
     context: ActionContext.GLOBAL,
     execute: async () => {
@@ -102,7 +103,8 @@ export function setupGlobalActions(
     id: ACTION_OPEN_BROWSER,
     title: 'Learn About Pomodoro',
     description: 'Open the Pomodoro Technique on Wikipedia',
-    category: 'Pomodoro Timer',
+    icon: '🔗',
+    category: 'About',
     extensionId,
     context: ActionContext.GLOBAL,
     execute: async () => {
@@ -122,7 +124,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_START,
         title: 'Start Focus Session',
-        category: 'Pomodoro Timer',
+        icon: '🍅',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => start(),
@@ -132,7 +135,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_PAUSE,
         title: `Pause (${time} remaining)`,
-        category: 'Pomodoro Timer',
+        icon: '⏸️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => pause(),
@@ -140,7 +144,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_STOP,
         title: 'Stop Focus Session',
-        category: 'Pomodoro Timer',
+        icon: '⏹️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => stop(),
@@ -148,7 +153,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_SKIP,
         title: `Skip to Break (${time} remaining)`,
-        category: 'Pomodoro Timer',
+        icon: '⏭️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => skip(),
@@ -158,7 +164,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_SKIP,
         title: `Skip Break (${time} remaining)`,
-        category: 'Pomodoro Timer',
+        icon: '⏭️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => skip(),
@@ -166,7 +173,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_STOP,
         title: 'Stop Break',
-        category: 'Pomodoro Timer',
+        icon: '⏹️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => stop(),
@@ -177,7 +185,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_RESUME,
         title: `Resume (${time} remaining)`,
-        category: 'Pomodoro Timer',
+        icon: '▶️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => start(),
@@ -185,7 +194,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_STOP,
         title: 'Stop Timer',
-        category: 'Pomodoro Timer',
+        icon: '⏹️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => stop(),
@@ -193,7 +203,8 @@ export function setupGlobalActions(
       actionService.registerAction({
         id: ACTION_SKIP,
         title: 'Skip to Next Phase',
-        category: 'Pomodoro Timer',
+        icon: '⏭️',
+        category: 'Controls',
         extensionId,
         context: ActionContext.GLOBAL,
         execute: async () => skip(),

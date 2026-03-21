@@ -150,7 +150,8 @@
     actionService.registerAction({
       id: ACTION_SETTINGS,
       title: 'Open Timer Settings',
-      category: 'Pomodoro Timer',
+      icon: '⚙️',
+      category: 'Settings',
       extensionId,
       context: ActionContext.EXTENSION_VIEW,
       execute: async () => { showSettings = !showSettings; },
@@ -159,7 +160,8 @@
       id: ACTION_CLEAR_HISTORY,
       title: 'Clear Session History',
       description: 'Permanently removes all recorded sessions',
-      category: 'Pomodoro Timer',
+      icon: '🗑️',
+      category: 'Settings',
       extensionId,
       context: ActionContext.EXTENSION_VIEW,
       execute: async () => {
