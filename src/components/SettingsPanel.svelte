@@ -8,6 +8,12 @@
   function handleChange() {
     updateSettings({ ...settings });
   }
+
+  function step(field: keyof TimerSettings, delta: number, min: number, max: number) {
+    const current = settings[field] as number;
+    (settings as any)[field] = Math.min(max, Math.max(min, current + delta));
+    handleChange();
+  }
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -18,85 +24,69 @@
   </div>
 
   <div class="settings-body">
-    <div class="setting-group">
-      <label>
-        <span class="setting-label">Focus Duration</span>
-        <span class="setting-value">{settings.focusMinutes} min</span>
-        <input
-          type="range" min="5" max="60" step="5"
-          bind:value={settings.focusMinutes}
-          on:change={handleChange}
-          aria-label="Focus duration: {settings.focusMinutes} minutes"
-        />
-      </label>
+
+    <div class="setting-row">
+      <span class="setting-label">Focus Duration</span>
+      <div class="stepper">
+        <button on:click={() => step('focusMinutes', -5, 5, 60)}>−</button>
+        <span class="step-value">{settings.focusMinutes} min</span>
+        <button on:click={() => step('focusMinutes', +5, 5, 60)}>+</button>
+      </div>
     </div>
 
-    <div class="setting-group">
-      <label>
-        <span class="setting-label">Short Break</span>
-        <span class="setting-value">{settings.shortBreakMinutes} min</span>
-        <input
-          type="range" min="1" max="15" step="1"
-          bind:value={settings.shortBreakMinutes}
-          on:change={handleChange}
-          aria-label="Short break: {settings.shortBreakMinutes} minutes"
-        />
-      </label>
+    <div class="setting-row">
+      <span class="setting-label">Short Break</span>
+      <div class="stepper">
+        <button on:click={() => step('shortBreakMinutes', -1, 1, 15)}>−</button>
+        <span class="step-value">{settings.shortBreakMinutes} min</span>
+        <button on:click={() => step('shortBreakMinutes', +1, 1, 15)}>+</button>
+      </div>
     </div>
 
-    <div class="setting-group">
-      <label>
-        <span class="setting-label">Long Break</span>
-        <span class="setting-value">{settings.longBreakMinutes} min</span>
-        <input
-          type="range" min="10" max="30" step="5"
-          bind:value={settings.longBreakMinutes}
-          on:change={handleChange}
-          aria-label="Long break: {settings.longBreakMinutes} minutes"
-        />
-      </label>
+    <div class="setting-row">
+      <span class="setting-label">Long Break</span>
+      <div class="stepper">
+        <button on:click={() => step('longBreakMinutes', -5, 10, 30)}>−</button>
+        <span class="step-value">{settings.longBreakMinutes} min</span>
+        <button on:click={() => step('longBreakMinutes', +5, 10, 30)}>+</button>
+      </div>
     </div>
 
-    <div class="setting-group">
-      <label>
-        <span class="setting-label">Sessions Before Long Break</span>
-        <span class="setting-value">{settings.sessionsBeforeLongBreak}</span>
-        <input
-          type="range" min="1" max="8" step="1"
-          bind:value={settings.sessionsBeforeLongBreak}
-          on:change={handleChange}
-          aria-label="Sessions before long break: {settings.sessionsBeforeLongBreak}"
-        />
-      </label>
+    <div class="setting-row">
+      <span class="setting-label">Sessions Before Long Break</span>
+      <div class="stepper">
+        <button on:click={() => step('sessionsBeforeLongBreak', -1, 1, 8)}>−</button>
+        <span class="step-value">{settings.sessionsBeforeLongBreak}</span>
+        <button on:click={() => step('sessionsBeforeLongBreak', +1, 1, 8)}>+</button>
+      </div>
     </div>
 
-    <div class="setting-group toggle-group">
-      <label class="toggle-label">
-        <span class="setting-label">Auto-start Breaks</span>
+    <div class="setting-row toggle-row">
+      <span class="setting-label">Auto-start Breaks</span>
+      <label class="toggle">
         <input type="checkbox" bind:checked={settings.autoStartBreaks} on:change={handleChange} />
-        <span class="toggle-track" />
+        <span class="toggle-track"></span>
       </label>
     </div>
 
-    <div class="setting-group toggle-group">
-      <label class="toggle-label">
-        <span class="setting-label">Auto-start Focus</span>
+    <div class="setting-row toggle-row">
+      <span class="setting-label">Auto-start Focus</span>
+      <label class="toggle">
         <input type="checkbox" bind:checked={settings.autoStartFocus} on:change={handleChange} />
-        <span class="toggle-track" />
+        <span class="toggle-track"></span>
       </label>
     </div>
+
   </div>
 </div>
 
 <style>
   .settings-panel {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 240px;
-    height: 100%;
-    background-color: var(--bg-secondary, #1e1e2e);
-    border-left: 1px solid var(--border-color, rgba(255,255,255,0.08));
+    top: 0; right: 0;
+    width: 240px; height: 100%;
+    background-color: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     z-index: 10;
@@ -113,20 +103,20 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px 12px;
-    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+    border-bottom: 1px solid var(--border-color);
   }
 
   h3 {
     margin: 0;
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-primary, rgba(255,255,255,0.9));
+    color: var(--text-primary);
   }
 
   .close-btn {
     background: none;
     border: none;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 14px;
     padding: 2px 6px;
@@ -135,100 +125,119 @@
   }
 
   .close-btn:hover {
-    color: var(--text-primary, rgba(255,255,255,0.9));
-    background: var(--hover-bg, rgba(255,255,255,0.08));
+    color: var(--text-primary);
+    background: var(--hover-bg);
   }
 
   .settings-body {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 16px;
+    padding: 8px 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 4px;
   }
 
-  .setting-group label {
+  .setting-row {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .setting-row:last-child {
+    border-bottom: none;
   }
 
   .setting-label {
     font-size: 12px;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    color: var(--text-secondary);
+    flex: 1;
+    padding-right: 8px;
   }
 
-  .setting-value {
+  /* Step buttons */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .stepper button {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+  }
+
+  .stepper button:hover {
+    background: var(--hover-bg);
+  }
+
+  .stepper button:active {
+    background: var(--border-color);
+  }
+
+  .step-value {
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-primary, rgba(255,255,255,0.9));
+    color: var(--text-primary);
+    min-width: 44px;
+    text-align: center;
     font-variant-numeric: tabular-nums;
   }
 
-  input[type="range"] {
-    width: 100%;
-    height: 4px;
-    appearance: none;
-    background: var(--border-color, rgba(255,255,255,0.15));
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--pomodoro-focus, #ef4444);
-    cursor: pointer;
-    border: none;
-  }
-
   /* Toggle */
-  .toggle-group .toggle-label {
-    flex-direction: row;
+  .toggle-row {
     align-items: center;
-    justify-content: space-between;
   }
 
-  .toggle-label input[type="checkbox"] {
+  .toggle {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .toggle input[type="checkbox"] {
     display: none;
   }
 
   .toggle-track {
+    display: block;
     width: 34px;
     height: 18px;
     border-radius: 9px;
-    background: var(--border-color, rgba(255,255,255,0.15));
+    background: var(--border-color);
     position: relative;
-    flex-shrink: 0;
-    transition: background 0.2s;
     cursor: pointer;
+    transition: background 0.2s;
   }
 
   .toggle-track::after {
     content: '';
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 12px;
-    height: 12px;
+    top: 3px; left: 3px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: white;
     transition: transform 0.2s;
   }
 
-  input[type="checkbox"]:checked + .toggle-track {
-    background: var(--pomodoro-focus, #ef4444);
+  .toggle input[type="checkbox"]:checked + .toggle-track {
+    background: var(--pomodoro-focus);
   }
 
-  input[type="checkbox"]:checked + .toggle-track::after {
+  .toggle input[type="checkbox"]:checked + .toggle-track::after {
     transform: translateX(16px);
   }
 </style>

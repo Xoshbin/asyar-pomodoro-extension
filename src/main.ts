@@ -136,7 +136,6 @@ if (viewName === 'TimerView') {
     props: { notifService, actionService, clipboardService, extensionId },
   });
 } else if (viewName === 'NoView') {
-  // Silent start: run command logic, mount nothing visible
   const state = getState();
   if (state.isRunning) {
     notifyAlreadyRunning(notifService, state.secondsRemaining).catch(console.error);
@@ -144,6 +143,8 @@ if (viewName === 'TimerView') {
     start();
     notifyStarted(notifService, getState().totalSeconds / 60).catch(console.error);
   }
+  // Close the launcher — no view should stay open
+  window.parent.postMessage({ type: 'asyar:window:hide', extensionId }, '*');
 }
 // All other view values (e.g., timer-status fallback to TimerView handled by defaultView)
 // → falls through to TimerView mounting via the host's defaultView routing

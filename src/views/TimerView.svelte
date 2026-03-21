@@ -346,18 +346,40 @@
 
 <style>
   /* CSS custom properties for the Pomodoro palette */
+  /* Semantic Pomodoro phase colours — same in both modes */
   :global(:root) {
     --pomodoro-focus:      #ef4444;
     --pomodoro-break:      #22c55e;
     --pomodoro-long-break: #3b82f6;
     --pomodoro-idle:       #6b7280;
-    --track-color:         rgba(255, 255, 255, 0.08);
-    --text-primary:        rgba(255, 255, 255, 0.92);
-    --text-secondary:      rgba(255, 255, 255, 0.55);
-    --text-muted:          rgba(255, 255, 255, 0.3);
-    --bg-secondary:        #1a1a2e;
-    --border-color:        rgba(255, 255, 255, 0.08);
-    --hover-bg:            rgba(255, 255, 255, 0.05);
+  }
+
+  /* Dark mode — matches Asyar host palette */
+  @media (prefers-color-scheme: dark) {
+    :global(:root) {
+      --bg-primary:    rgb(30, 30, 32);
+      --bg-secondary:  rgb(40, 40, 42);
+      --text-primary:  rgba(255, 255, 255, 0.92);
+      --text-secondary: rgba(235, 235, 245, 0.65);
+      --text-muted:    rgba(235, 235, 245, 0.35);
+      --border-color:  rgba(90, 90, 95, 0.5);
+      --hover-bg:      rgba(64, 64, 66, 0.55);
+      --track-color:   rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Light mode — matches Asyar host palette */
+  @media (prefers-color-scheme: light) {
+    :global(:root) {
+      --bg-primary:    rgb(242, 242, 247);
+      --bg-secondary:  rgb(230, 230, 235);
+      --text-primary:  rgba(0, 0, 0, 0.9);
+      --text-secondary: rgba(60, 60, 67, 0.7);
+      --text-muted:    rgba(60, 60, 67, 0.4);
+      --border-color:  rgba(60, 60, 67, 0.15);
+      --hover-bg:      rgba(0, 0, 0, 0.05);
+      --track-color:   rgba(0, 0, 0, 0.08);
+    }
   }
 
   .timer-view {
@@ -365,7 +387,7 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    background-color: var(--bg-primary, #13131f);
+    background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     overflow: hidden;

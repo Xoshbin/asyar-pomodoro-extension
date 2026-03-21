@@ -11,22 +11,16 @@
     {
       "id": "start-timer",
       "name": "Start Pomodoro",
-      "description": "Start a 25-minute focus session",
+      "description": "Start a 25-minute focus session and close the launcher",
       "resultType": "no-view",
       "view": "NoView"
     },
     {
       "id": "open-timer",
-      "name": "Open Pomodoro Timer",
+      "name": "Pomodoro Timer",
       "description": "Open the timer view with live countdown",
       "resultType": "view",
       "view": "TimerView"
-    },
-    {
-      "id": "timer-status",
-      "name": "Pomodoro Status",
-      "description": "Check current timer status",
-      "resultType": "result"
     }
   ]
 }
