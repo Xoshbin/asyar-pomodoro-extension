@@ -5,6 +5,7 @@
   "description": "Focus timer using the Pomodoro technique. 25-minute work sessions with short and long breaks.",
   "author": "Asyar",
   "searchable": true,
+  "icon": "🍅",
   "defaultView": "TimerView",
   "permissions": ["notifications:send", "clipboard:write", "shell:open-url"],
   "commands": [
@@ -13,14 +14,16 @@
       "name": "Start Pomodoro",
       "description": "Start a 25-minute focus session and close the launcher",
       "resultType": "no-view",
-      "view": "NoView"
+      "view": "NoView",
+      "icon": "▶️"
     },
     {
       "id": "open-timer",
       "name": "Pomodoro Timer",
       "description": "Open the timer view with live countdown",
       "resultType": "view",
-      "view": "TimerView"
+      "view": "TimerView",
+      "icon": "🍅"
     }
   ]
 }
