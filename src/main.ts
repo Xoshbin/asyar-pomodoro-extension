@@ -43,7 +43,16 @@ import TimerView from './views/TimerView.svelte';
 // ---------------------------------------------------------------------------
 // 1. Extension identity
 // ---------------------------------------------------------------------------
-const extensionId = window.location.hostname || 'org.asyar.pomodoro';
+// On macOS (WKWebView): asyar-extension://org.asyar.pomodoro/index.html
+//   → hostname = 'org.asyar.pomodoro'
+// On Windows (WebView2): asyar-extension://localhost/org.asyar.pomodoro/index.html
+//   → hostname = 'localhost', pathname = '/org.asyar.pomodoro/index.html'
+const extensionId = (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === 'asyar-extension.localhost'
+)
+  ? window.location.pathname.split('/').filter(Boolean)[0] || 'org.asyar.pomodoro'
+  : window.location.hostname || 'org.asyar.pomodoro';
 console.log(`[${extensionId}] Bootstrapping...`);
 
 // ---------------------------------------------------------------------------

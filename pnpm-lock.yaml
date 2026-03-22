@@ -33,6 +33,10 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.1(@types/node@25.5.0)
+    optionalDependencies:
+      '@rollup/rollup-win32-arm64-msvc':
+        specifier: '*'
+        version: 4.59.0
 
 packages:
 

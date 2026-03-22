@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
   );
 
   return {
+    base: './',
     plugins: [svelte()],
     resolve: {
       alias: useLocalSdk ? { 'asyar-sdk': localSdkEntry } : undefined,
