@@ -9,7 +9,8 @@
 // at startup and never change.
 // ---------------------------------------------------------------------------
 
-import { ActionContext, ActionCategory, ClipboardItemType, type IActionService, type IClipboardHistoryService } from 'asyar-sdk';
+import { type IActionService, type IClipboardHistoryService, type IStatusBarService, ActionContext, ClipboardItemType } from 'asyar-sdk';
+import { subscribe, start, pause, stop, skip, getHistory, formatTime, type TimerState } from './timerEngine';
 
 /** Send asyar:api:opener:open directly — MessageBroker is not in the public asyar-sdk export. */
 function openUrl(url: string, extensionId: string): void {
@@ -19,7 +20,6 @@ function openUrl(url: string, extensionId: string): void {
     '*'
   );
 }
-import { subscribe, start, pause, stop, skip, getHistory, formatTime, type TimerState } from './timerEngine';
 
 // ---------------------------------------------------------------------------
 // Action IDs — stable across re-registrations so the ⌘K panel doesn't flicker
@@ -68,6 +68,8 @@ function buildSummaryText(): string {
 // setupGlobalActions — call once from main.ts
 // ---------------------------------------------------------------------------
 let _registeredTimerControls: string[] = [];
+let trayItemRegistered = false;
+const TRAY_ITEM_ID = 'timer-status';
 
 /**
  * Registers persistent actions and subscribes to timer state for dynamic ones.
@@ -76,6 +78,7 @@ let _registeredTimerControls: string[] = [];
 export function setupGlobalActions(
   actionService: IActionService,
   clipboardService: IClipboardHistoryService,
+  statusBarService: IStatusBarService,
   extensionId: string
 ): () => void {
   // --- Persistent utility actions (registered once, never change) -----------
@@ -119,6 +122,30 @@ export function setupGlobalActions(
     _registeredTimerControls = [];
 
     const time = formatTime(state.secondsRemaining);
+
+    // Update Tray Menu Item
+    if (state.phase !== 'idle') {
+      const phaseIcon = state.phase === 'focus' ? '🍅' : (state.phase === 'short-break' ? '☕' : '🛋️');
+      const formattedTime = formatTime(state.secondsRemaining);
+      if (!trayItemRegistered) {
+        statusBarService.registerItem({
+          id: TRAY_ITEM_ID,
+          icon: phaseIcon,
+          text: formattedTime,
+        });
+        trayItemRegistered = true;
+      } else {
+        statusBarService.updateItem(TRAY_ITEM_ID, {
+          icon: phaseIcon,
+          text: formattedTime,
+        });
+      }
+    } else {
+      if (trayItemRegistered) {
+        statusBarService.unregisterItem(TRAY_ITEM_ID);
+        trayItemRegistered = false;
+      }
+    }
 
     if (state.phase === 'idle') {
       actionService.registerAction({
@@ -220,6 +247,10 @@ export function setupGlobalActions(
     _registeredTimerControls = [];
     actionService.unregisterAction(ACTION_COPY_SUMMARY);
     actionService.unregisterAction(ACTION_OPEN_BROWSER);
+    if (trayItemRegistered) {
+      statusBarService.unregisterItem(TRAY_ITEM_ID);
+      trayItemRegistered = false;
+    }
     // Clear any remaining known IDs defensively
     TIMER_CONTROL_IDS.forEach(id => actionService.unregisterAction(id));
   };

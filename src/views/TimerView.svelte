@@ -7,9 +7,9 @@
     type TimerState, type SessionRecord,
   } from '../lib/timerEngine';
   import {
-    ActionContext, ClipboardItemType,
     type INotificationService, type IActionService,
     type IClipboardHistoryService,
+    ActionContext, ClipboardItemType
   } from 'asyar-sdk';
   import { notifyPaused } from '../lib/notifications';
 

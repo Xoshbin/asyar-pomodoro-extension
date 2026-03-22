@@ -21,8 +21,8 @@ import {
   type INotificationService,
   type IActionService,
   type IClipboardHistoryService,
+  type IStatusBarService,
 } from 'asyar-sdk';
-
 import {
   init as initTimer,
   start,
@@ -55,6 +55,7 @@ context.setExtensionId(extensionId);
 const notifService    = context.getService<INotificationService>('NotificationService');
 const actionService   = context.getService<IActionService>('ActionService');
 const clipboardService = context.getService<IClipboardHistoryService>('ClipboardHistoryService');
+const statusBarService = context.getService<IStatusBarService>('StatusBarService');
 
 // ---------------------------------------------------------------------------
 // 3. Timer engine init — pass notification callbacks
@@ -117,7 +118,7 @@ window.addEventListener('message', async (event) => {
 // ---------------------------------------------------------------------------
 // 7. Register global ⌘K actions (dynamic, tracks timer state)
 // ---------------------------------------------------------------------------
-const cleanupActions = setupGlobalActions(actionService, clipboardService, extensionId);
+const cleanupActions = setupGlobalActions(actionService, clipboardService, statusBarService, extensionId);
 
 // Clean up on page unload (best-effort for Tier 2 iframe teardown)
 window.addEventListener('beforeunload', () => {
