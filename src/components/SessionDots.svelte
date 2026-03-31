@@ -18,7 +18,7 @@
         : isCurrentlyFocus && i === sessionsCompleted
           ? 'In progress'
           : `Session ${i + 1}`}
-    />
+    ></div>
   {/each}
 </div>
 
