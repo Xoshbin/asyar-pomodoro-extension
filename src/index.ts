@@ -1,31 +1,31 @@
 import type { Extension, ExtensionContext } from "asyar-sdk";
-import DefaultView from "./DefaultView.svelte";
+import TimerView from "./views/TimerView.svelte";
 
-class MyExtension implements Extension {
+class PomodoroExtension implements Extension {
   private extensionManager?: any;
 
   async initialize(context: ExtensionContext) {
     this.extensionManager = context.getService("ExtensionManager");
-    console.log("Pomodoro initialized!");
   }
 
   async activate(): Promise<void> {}
   async deactivate(): Promise<void> {}
   async viewActivated(viewId: string): Promise<void> {}
   async viewDeactivated(viewId: string): Promise<void> {}
-  
+
   async executeCommand(commandId: string, args?: Record<string, any>): Promise<any> {
-    if (commandId === "open") {
-      this.extensionManager?.navigateToView("org.asyar.pomodoro/DefaultView");
+    if (commandId === "open-timer") {
+      this.extensionManager?.navigateToView("org.asyar.pomodoro/TimerView");
       return {
         type: "view",
-        viewPath: "org.asyar.pomodoro/DefaultView",
+        viewPath: "org.asyar.pomodoro/TimerView",
       };
     }
+    // start-timer (no-view) is handled via asyar:invoke:command in main.ts
   }
-  
+
   onUnload = () => {};
 }
 
-export default new MyExtension();
-export { DefaultView };
+export default new PomodoroExtension();
+export { TimerView };

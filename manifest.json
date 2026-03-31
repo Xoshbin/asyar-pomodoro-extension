@@ -1,13 +1,18 @@
 {
   "id": "org.asyar.pomodoro",
   "name": "Pomodoro Timer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Focus timer using the Pomodoro technique. 25-minute work sessions with short and long breaks.",
   "author": "Asyar",
   "searchable": true,
   "icon": "🍅",
   "defaultView": "TimerView",
-  "permissions": ["notifications:send", "clipboard:write", "shell:open-url"],
+  "asyarSdk": "^1.3.3",
+  "permissions": [
+    "notifications:send",
+    "clipboard:write",
+    "shell:open-url"
+  ],
   "commands": [
     {
       "id": "start-timer",
