@@ -15,9 +15,11 @@
 //      - otherwise       → mount nothing (background state only)
 // ---------------------------------------------------------------------------
 
+import 'asyar-sdk/tokens.css';
 import { mount } from 'svelte';
 import {
   ExtensionContext,
+  registerIconElement,
   type INotificationService,
   type IActionService,
   type IClipboardHistoryService,
@@ -60,6 +62,7 @@ console.log(`[${extensionId}] Bootstrapping...`);
 // ---------------------------------------------------------------------------
 const context = new ExtensionContext();
 context.setExtensionId(extensionId);
+registerIconElement();
 
 const notifService    = context.getService<INotificationService>('NotificationService');
 const actionService   = context.getService<IActionService>('ActionService');
