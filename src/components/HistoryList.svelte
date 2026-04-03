@@ -1,13 +1,16 @@
 <script lang="ts">
   import type { SessionRecord } from '../lib/timerEngine';
 
-  export let history: SessionRecord[];
-  export let searchQuery: string = '';
+  interface Props {
+    history: SessionRecord[];
+    searchQuery?: string;
+  }
+  let { history, searchQuery = '' }: Props = $props();
 
   function relativeTime(ts: number): string {
     const diff = Math.floor((Date.now() - ts) / 1000);
-    if (diff < 60)   return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return `${Math.floor(diff / 60)} min ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
     return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
@@ -26,7 +29,7 @@
     return 'Unknown';
   }
 
-  $: filtered = searchQuery.trim()
+  let filtered = $derived(searchQuery.trim()
     ? history.filter(r => {
         const q = searchQuery.toLowerCase();
         return phaseLabel(r.phase).toLowerCase().includes(q)
@@ -34,7 +37,7 @@
           || (q === 'focus' && r.phase === 'focus')
           || (q === 'break' && r.phase !== 'focus');
       })
-    : history;
+    : history);
 </script>
 
 <div class="history-list">

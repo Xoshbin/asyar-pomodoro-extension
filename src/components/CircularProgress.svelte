@@ -1,32 +1,39 @@
 <script lang="ts">
   import type { TimerPhase } from '../lib/timerEngine';
 
-  export let secondsRemaining: number;
-  export let totalSeconds: number;
-  export let phase: TimerPhase;
-  export let isRunning: boolean;
+  interface Props {
+    secondsRemaining: number;
+    totalSeconds: number;
+    phase: TimerPhase;
+    isRunning: boolean;
+  }
+  let { secondsRemaining, totalSeconds, phase, isRunning }: Props = $props();
 
-  const SIZE      = 200;
-  const STROKE    = 10;
-  const RADIUS    = (SIZE - STROKE) / 2;
+  const SIZE          = 200;
+  const STROKE        = 10;
+  const RADIUS        = (SIZE - STROKE) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-  $: ratio = totalSeconds > 0 ? secondsRemaining / totalSeconds : 1;
-  $: dashOffset = CIRCUMFERENCE * (1 - ratio);
+  let ratio       = $derived(totalSeconds > 0 ? secondsRemaining / totalSeconds : 1);
+  let dashOffset  = $derived(CIRCUMFERENCE * (1 - ratio));
 
-  $: phaseColor = phase === 'focus'       ? 'var(--pomodoro-focus)'
-                : phase === 'short-break' ? 'var(--pomodoro-break)'
-                : phase === 'long-break'  ? 'var(--pomodoro-long-break)'
-                : 'var(--pomodoro-idle)';
+  let phaseColor = $derived(
+    phase === 'focus'       ? 'var(--pomodoro-focus)'
+    : phase === 'short-break' ? 'var(--pomodoro-break)'
+    : phase === 'long-break'  ? 'var(--pomodoro-long-break)'
+    : 'var(--pomodoro-idle)'
+  );
 
-  $: phaseLabel = phase === 'focus'       ? 'FOCUS'
-                : phase === 'short-break' ? 'SHORT BREAK'
-                : phase === 'long-break'  ? 'LONG BREAK'
-                : 'IDLE';
+  let phaseLabel = $derived(
+    phase === 'focus'       ? 'FOCUS'
+    : phase === 'short-break' ? 'SHORT BREAK'
+    : phase === 'long-break'  ? 'LONG BREAK'
+    : 'IDLE'
+  );
 
-  $: minutes = Math.floor(secondsRemaining / 60);
-  $: seconds = secondsRemaining % 60;
-  $: timeDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  let minutes     = $derived(Math.floor(secondsRemaining / 60));
+  let seconds     = $derived(secondsRemaining % 60);
+  let timeDisplay = $derived(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
 </script>
 
 <div class="circular-progress" aria-label="{phaseLabel}: {timeDisplay}">
@@ -121,7 +128,6 @@
   }
 
   .pulsing {
-    /* Subtle breathing effect on the ring when running */
     animation: subtlePulse 2s ease-in-out infinite;
   }
 </style>

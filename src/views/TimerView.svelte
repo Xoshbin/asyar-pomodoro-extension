@@ -3,7 +3,7 @@
   import {
     subscribe,
     start, pause, stop, skip,
-    clearHistory, getHistory,
+    clearHistory, getHistory, getSettings,
     type TimerState, type SessionRecord,
   } from '../lib/timerEngine';
   import {
@@ -13,35 +13,37 @@
   } from 'asyar-sdk';
   import { notifyPaused } from '../lib/notifications';
 
-  import CircularProgress  from '../components/CircularProgress.svelte';
-  import SessionDots       from '../components/SessionDots.svelte';
-  import HistoryList       from '../components/HistoryList.svelte';
-  import SettingsPanel     from '../components/SettingsPanel.svelte';
+  import CircularProgress from '../components/CircularProgress.svelte';
+  import SessionDots      from '../components/SessionDots.svelte';
+  import HistoryList      from '../components/HistoryList.svelte';
+  import SettingsPanel    from '../components/SettingsPanel.svelte';
 
-  // Props injected from main.ts
-  export let notifService:     INotificationService;
-  export let actionService:    IActionService;
-  export let clipboardService: IClipboardHistoryService;
-  export let extensionId:      string;
+  interface Props {
+    notifService:     INotificationService;
+    actionService:    IActionService;
+    clipboardService: IClipboardHistoryService;
+    extensionId:      string;
+  }
+  let { notifService, actionService, clipboardService, extensionId }: Props = $props();
 
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
-  let timerState: TimerState | null = null;
-  let history: SessionRecord[]      = [];
-  let searchQuery = '';
-  let showSettings = false;
-  let showHistory  = true;
+  let timerState = $state<TimerState | null>(null);
+  let history    = $state<SessionRecord[]>([]);
+  let searchQuery                   = $state('');
+  let showSettings                  = $state(false);
+  let showHistory                   = $state(true);
 
   // ---------------------------------------------------------------------------
   // Derived helpers
   // ---------------------------------------------------------------------------
-  $: isRunning   = timerState?.isRunning ?? false;
-  $: phase       = timerState?.phase ?? 'idle';
-  $: secondsLeft = timerState?.secondsRemaining ?? 0;
-  $: totalSecs   = timerState?.totalSeconds ?? 1;
-  $: sessions    = timerState?.sessionsCompleted ?? 0;
-  $: sessionsBefore = 4; // updated from settings subscription below
+  let isRunning      = $derived(timerState?.isRunning ?? false);
+  let phase          = $derived(timerState?.phase ?? 'idle');
+  let secondsLeft    = $derived(timerState?.secondsRemaining ?? 0);
+  let totalSecs      = $derived(timerState?.totalSeconds ?? 1);
+  let sessions       = $derived(timerState?.sessionsCompleted ?? 0);
+  let sessionsBefore = $derived(getSettings().sessionsBeforeLongBreak);
 
   // ---------------------------------------------------------------------------
   // Subscribe to timer engine
@@ -54,10 +56,7 @@
       history    = getHistory();
     });
 
-    // Listen for asyar:view:keydown forwarded by extensionManager.forwardKeyToActiveView
     window.addEventListener('message', handleHostMessage);
-
-    // Register view-scoped actions
     registerViewActions();
   });
 
@@ -66,15 +65,6 @@
     window.removeEventListener('message', handleHostMessage);
     unregisterViewActions();
   });
-
-  // ---------------------------------------------------------------------------
-  // Settings subscription for sessionsBeforeLongBreak
-  // ---------------------------------------------------------------------------
-  import { getSettings } from '../lib/timerEngine';
-  $: {
-    const s = getSettings();
-    sessionsBefore = s.sessionsBeforeLongBreak;
-  }
 
   // ---------------------------------------------------------------------------
   // Host message handler (keydown forwarding + view search)
@@ -98,7 +88,6 @@
 
     switch (kev.key) {
       case ' ':
-        // Space: toggle start/pause
         if (isRunning) {
           pause();
           notifyPaused(notifService, timerState?.secondsRemaining ?? 0).catch(console.error);
@@ -122,7 +111,6 @@
         if (showSettings) {
           showSettings = false;
         } else {
-          // Forward Escape to host to close the launcher
           window.parent.postMessage({
             type: 'asyar:extension:keydown',
             payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
@@ -132,9 +120,7 @@
     }
   }
 
-  // Also catch raw keydown events inside the iframe
   function handleNativeKeydown(event: KeyboardEvent) {
-    // Don't intercept if typing in an input
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
     handleKeydown(event);
@@ -143,7 +129,7 @@
   // ---------------------------------------------------------------------------
   // View-scoped ⌘K actions (EXTENSION_VIEW context)
   // ---------------------------------------------------------------------------
-  const ACTION_SETTINGS     = 'org.asyar.pomodoro:view:open-settings';
+  const ACTION_SETTINGS      = 'org.asyar.pomodoro:view:open-settings';
   const ACTION_CLEAR_HISTORY = 'org.asyar.pomodoro:view:clear-history';
 
   function registerViewActions() {
@@ -165,7 +151,6 @@
       extensionId,
       context: ActionContext.EXTENSION_VIEW,
       execute: async () => {
-        // Confirm via notification before clearing
         await notifService.notify({
           title: '🗑️ History cleared',
           body: 'All session records have been deleted.',
@@ -188,7 +173,7 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayFocus = history.filter(r => r.phase === 'focus' && r.completedAt >= today.getTime() && !r.wasInterrupted);
-    const totalMins = Math.round(todayFocus.reduce((a, r) => a + r.durationMinutes, 0));
+    const totalMins  = Math.round(todayFocus.reduce((a, r) => a + r.durationMinutes, 0));
     const text = [
       `🍅 Pomodoro Summary — ${new Date().toLocaleDateString()}`,
       `• Focus sessions: ${todayFocus.length}`,
@@ -219,10 +204,10 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   class="timer-view"
-  on:keydown={handleNativeKeydown}
+  onkeydown={handleNativeKeydown}
   role="application"
   aria-label="Pomodoro Timer"
   tabindex="-1"
@@ -236,7 +221,7 @@
     <div class="header-actions">
       <button
         class="icon-btn"
-        on:click={() => showHistory = !showHistory}
+        onclick={() => showHistory = !showHistory}
         aria-label="{showHistory ? 'Hide' : 'Show'} history"
         title="Toggle history (H)"
       >
@@ -245,7 +230,7 @@
       <button
         class="icon-btn"
         class:active={showSettings}
-        on:click={() => showSettings = !showSettings}
+        onclick={() => showSettings = !showSettings}
         aria-label="Settings"
         title="Settings (⚙)"
       >
@@ -278,8 +263,7 @@
         <button
           class="btn-primary"
           class:running={isRunning}
-          on:click={handlePrimaryButton}
-          disabled={phase === 'idle' && false}
+          onclick={handlePrimaryButton}
           aria-label={isRunning ? 'Pause' : (phase === 'idle' ? 'Start' : 'Resume')}
           title="Space"
         >
@@ -289,7 +273,7 @@
         {#if phase !== 'idle'}
           <button
             class="btn-secondary"
-            on:click={() => stop()}
+            onclick={() => stop()}
             aria-label="Stop timer"
             title="S"
           >
@@ -297,7 +281,7 @@
           </button>
           <button
             class="btn-secondary"
-            on:click={() => skip()}
+            onclick={() => skip()}
             aria-label="Skip to next phase"
             title="N"
           >
@@ -321,7 +305,7 @@
           {#if history.length > 0}
             <button
               class="copy-btn"
-              on:click={copySessionSummary}
+              onclick={copySessionSummary}
               title="Copy today's summary to clipboard"
               aria-label="Copy session summary"
             >
@@ -345,7 +329,6 @@
 </div>
 
 <style>
-  /* CSS custom properties for the Pomodoro palette */
   /* Semantic Pomodoro phase colours — same in both modes */
   :global(:root) {
     --pomodoro-focus:      #ef4444;
@@ -354,17 +337,12 @@
     --pomodoro-idle:       #6b7280;
   }
 
-  /* Dark mode — matches Asyar host palette */
+  /* Dark mode — pomodoro-specific tokens not in tokens.css */
   @media (prefers-color-scheme: dark) {
     :global(:root) {
-      --bg-primary:    rgb(30, 30, 32);
-      --bg-secondary:  rgb(40, 40, 42);
-      --text-primary:  rgba(255, 255, 255, 0.92);
-      --text-secondary: rgba(235, 235, 245, 0.65);
-      --text-muted:    rgba(235, 235, 245, 0.35);
-      --border-color:  rgba(90, 90, 95, 0.5);
-      --hover-bg:      rgba(64, 64, 66, 0.55);
-      --track-color:   rgba(255, 255, 255, 0.1);
+      --text-muted:  rgba(235, 235, 245, 0.35);
+      --hover-bg:    rgba(64, 64, 66, 0.55);
+      --track-color: rgba(255, 255, 255, 0.1);
     }
   }
 

@@ -1,10 +1,13 @@
 <script lang="ts">
-  /** Number of focus sessions completed in the current cycle. */
-  export let sessionsCompleted: number;
-  /** Total sessions before a long break (from settings). */
-  export let sessionsBeforeLongBreak: number;
-  /** Whether a focus session is currently running. */
-  export let isCurrentlyFocus: boolean;
+  interface Props {
+    /** Number of focus sessions completed in the current cycle. */
+    sessionsCompleted: number;
+    /** Total sessions before a long break (from settings). */
+    sessionsBeforeLongBreak: number;
+    /** Whether a focus session is currently running. */
+    isCurrentlyFocus: boolean;
+  }
+  let { sessionsCompleted, sessionsBeforeLongBreak, isCurrentlyFocus }: Props = $props();
 </script>
 
 <div class="session-dots" aria-label="{sessionsCompleted} of {sessionsBeforeLongBreak} sessions completed">

@@ -1,9 +1,12 @@
 <script lang="ts">
   import { getSettings, updateSettings, type TimerSettings } from '../lib/timerEngine';
 
-  export let onClose: () => void;
+  interface Props {
+    onClose: () => void;
+  }
+  let { onClose }: Props = $props();
 
-  let settings: TimerSettings = getSettings();
+  let settings: TimerSettings = $state(getSettings());
 
   function handleChange() {
     updateSettings({ ...settings });
@@ -16,11 +19,10 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div class="settings-panel" role="complementary" aria-label="Timer settings">
   <div class="settings-header">
     <h3>Timer Settings</h3>
-    <button class="close-btn" on:click={onClose} aria-label="Close settings">✕</button>
+    <button class="close-btn" onclick={onClose} aria-label="Close settings">✕</button>
   </div>
 
   <div class="settings-body">
@@ -28,43 +30,43 @@
     <div class="setting-row">
       <span class="setting-label">Focus Duration</span>
       <div class="stepper">
-        <button on:click={() => step('focusMinutes', -5, 5, 60)}>−</button>
+        <button onclick={() => step('focusMinutes', -5, 5, 60)}>−</button>
         <span class="step-value">{settings.focusMinutes} min</span>
-        <button on:click={() => step('focusMinutes', +5, 5, 60)}>+</button>
+        <button onclick={() => step('focusMinutes', +5, 5, 60)}>+</button>
       </div>
     </div>
 
     <div class="setting-row">
       <span class="setting-label">Short Break</span>
       <div class="stepper">
-        <button on:click={() => step('shortBreakMinutes', -1, 1, 15)}>−</button>
+        <button onclick={() => step('shortBreakMinutes', -1, 1, 15)}>−</button>
         <span class="step-value">{settings.shortBreakMinutes} min</span>
-        <button on:click={() => step('shortBreakMinutes', +1, 1, 15)}>+</button>
+        <button onclick={() => step('shortBreakMinutes', +1, 1, 15)}>+</button>
       </div>
     </div>
 
     <div class="setting-row">
       <span class="setting-label">Long Break</span>
       <div class="stepper">
-        <button on:click={() => step('longBreakMinutes', -5, 10, 30)}>−</button>
+        <button onclick={() => step('longBreakMinutes', -5, 10, 30)}>−</button>
         <span class="step-value">{settings.longBreakMinutes} min</span>
-        <button on:click={() => step('longBreakMinutes', +5, 10, 30)}>+</button>
+        <button onclick={() => step('longBreakMinutes', +5, 10, 30)}>+</button>
       </div>
     </div>
 
     <div class="setting-row">
       <span class="setting-label">Sessions Before Long Break</span>
       <div class="stepper">
-        <button on:click={() => step('sessionsBeforeLongBreak', -1, 1, 8)}>−</button>
+        <button onclick={() => step('sessionsBeforeLongBreak', -1, 1, 8)}>−</button>
         <span class="step-value">{settings.sessionsBeforeLongBreak}</span>
-        <button on:click={() => step('sessionsBeforeLongBreak', +1, 1, 8)}>+</button>
+        <button onclick={() => step('sessionsBeforeLongBreak', +1, 1, 8)}>+</button>
       </div>
     </div>
 
     <div class="setting-row toggle-row">
       <span class="setting-label">Auto-start Breaks</span>
       <label class="toggle">
-        <input type="checkbox" bind:checked={settings.autoStartBreaks} on:change={handleChange} />
+        <input type="checkbox" bind:checked={settings.autoStartBreaks} onchange={handleChange} />
         <span class="toggle-track"></span>
       </label>
     </div>
@@ -72,7 +74,7 @@
     <div class="setting-row toggle-row">
       <span class="setting-label">Auto-start Focus</span>
       <label class="toggle">
-        <input type="checkbox" bind:checked={settings.autoStartFocus} on:change={handleChange} />
+        <input type="checkbox" bind:checked={settings.autoStartFocus} onchange={handleChange} />
         <span class="toggle-track"></span>
       </label>
     </div>
@@ -157,7 +159,6 @@
     padding-right: 8px;
   }
 
-  /* Step buttons */
   .stepper {
     display: flex;
     align-items: center;
@@ -198,7 +199,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Toggle */
   .toggle-row {
     align-items: center;
   }
