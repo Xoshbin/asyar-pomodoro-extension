@@ -24,6 +24,7 @@ import {
   type IActionService,
   type IClipboardHistoryService,
   type IStatusBarService,
+  type IFeedbackService,
 } from 'asyar-sdk';
 import {
   init as initTimer,
@@ -34,8 +35,6 @@ import {
 import { setupGlobalActions } from './lib/actions';
 
 import {
-  notifyStarted,
-  notifyAlreadyRunning,
   notifyFocusComplete,
   notifyBreakComplete,
 } from './lib/notifications';
@@ -68,6 +67,7 @@ const notifService    = context.getService<INotificationService>('NotificationSe
 const actionService   = context.getService<IActionService>('ActionService');
 const clipboardService = context.getService<IClipboardHistoryService>('ClipboardHistoryService');
 const statusBarService = context.getService<IStatusBarService>('StatusBarService');
+const feedbackService = context.getService<IFeedbackService>('FeedbackService');
 
 // ---------------------------------------------------------------------------
 // 3. Timer engine init — pass notification callbacks
@@ -119,10 +119,12 @@ window.addEventListener('message', async (event) => {
   if (commandId === 'start-timer') {
     const state = getState();
     if (state.isRunning) {
-      await notifyAlreadyRunning(notifService, state.secondsRemaining);
+      const mins = Math.ceil(state.secondsRemaining / 60);
+      await feedbackService.showHUD(`🍅 Already running — ${mins} min remaining`);
     } else {
       start();
-      await notifyStarted(notifService, getState().totalSeconds / 60);
+      const mins = Math.round(getState().totalSeconds / 60);
+      await feedbackService.showHUD(`🍅 Pomodoro started — ${mins} min`);
     }
   }
 });
@@ -130,7 +132,12 @@ window.addEventListener('message', async (event) => {
 // ---------------------------------------------------------------------------
 // 7. Register global ⌘K actions (dynamic, tracks timer state)
 // ---------------------------------------------------------------------------
-const cleanupActions = setupGlobalActions(actionService, clipboardService, statusBarService, extensionId);
+const cleanupActions = setupGlobalActions(
+  actionService,
+  clipboardService,
+  statusBarService,
+  extensionId,
+);
 
 // Clean up on page unload (best-effort for Tier 2 iframe teardown)
 window.addEventListener('beforeunload', () => {
@@ -149,15 +156,24 @@ if (viewName === 'TimerView') {
     props: { notifService, actionService, clipboardService, extensionId },
   });
 } else if (viewName === 'NoView') {
+  // The "Start Pomodoro" command is `resultType: 'no-view'`, so the launcher
+  // hides immediately after we run. This is the canonical HUD use case:
+  // we need to confirm the action visually without leaving the launcher open.
   const state = getState();
   if (state.isRunning) {
-    notifyAlreadyRunning(notifService, state.secondsRemaining).catch(console.error);
+    const mins = Math.ceil(state.secondsRemaining / 60);
+    feedbackService
+      .showHUD(`🍅 Already running — ${mins} min remaining`)
+      .catch(console.error);
   } else {
     start();
-    notifyStarted(notifService, getState().totalSeconds / 60).catch(console.error);
+    const mins = Math.round(getState().totalSeconds / 60);
+    feedbackService
+      .showHUD(`🍅 Pomodoro started — ${mins} min`)
+      .catch(console.error);
   }
-  // Close the launcher — no view should stay open
-  window.parent.postMessage({ type: 'asyar:window:hide', extensionId }, '*');
+  // showHUD already calls hideWindow internally, so no need to post
+  // asyar:window:hide here.
 }
 // All other view values (e.g., timer-status fallback to TimerView handled by defaultView)
 // → falls through to TimerView mounting via the host's defaultView routing
