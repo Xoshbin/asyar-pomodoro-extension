@@ -1,23 +1,69 @@
 {
   "id": "org.asyar.pomodoro",
   "name": "Pomodoro Timer",
-  "version": "1.3.0",
-  "description": "Focus timer using the Pomodoro technique. 25-minute work sessions with short and long breaks.",
+  "version": "2.0.0",
+  "description": "Focus timer using the Pomodoro technique. Configurable focus and break durations, session tracking, and background phase detection.",
   "author": "Asyar",
   "searchable": true,
   "icon": "🍅",
   "defaultView": "TimerView",
-  "asyarSdk": "^1.9.1",
+  "asyarSdk": "^1.10.0",
   "permissions": [
     "notifications:send",
     "clipboard:write",
-    "shell:open-url"
+    "shell:open-url",
+    "storage:read",
+    "storage:write"
+  ],
+  "preferences": [
+    {
+      "name": "focusMinutes",
+      "type": "number",
+      "title": "Focus duration",
+      "description": "Length of a focus session in minutes (5–60).",
+      "default": 25
+    },
+    {
+      "name": "shortBreakMinutes",
+      "type": "number",
+      "title": "Short break",
+      "description": "Length of a short break in minutes (1–15).",
+      "default": 5
+    },
+    {
+      "name": "longBreakMinutes",
+      "type": "number",
+      "title": "Long break",
+      "description": "Length of a long break in minutes (10–30).",
+      "default": 15
+    },
+    {
+      "name": "sessionsBeforeLongBreak",
+      "type": "number",
+      "title": "Sessions before long break",
+      "description": "Number of focus sessions before a long break kicks in (1–8).",
+      "default": 4
+    },
+    {
+      "name": "autoStartBreaks",
+      "type": "checkbox",
+      "title": "Auto-start breaks",
+      "description": "Automatically start the next break when a focus session ends.",
+      "default": false
+    },
+    {
+      "name": "autoStartFocus",
+      "type": "checkbox",
+      "title": "Auto-start focus",
+      "description": "Automatically start the next focus session when a break ends.",
+      "default": false
+    }
   ],
   "commands": [
     {
       "id": "start-timer",
       "name": "Start Pomodoro",
-      "description": "Start a 25-minute focus session and close the launcher",
+      "description": "Start a focus session and close the launcher",
       "resultType": "no-view",
       "view": "NoView",
       "icon": "▶️"
@@ -29,6 +75,15 @@
       "resultType": "view",
       "view": "TimerView",
       "icon": "🍅"
+    },
+    {
+      "id": "tick",
+      "name": "Pomodoro Tick",
+      "description": "Background tick that advances the timer and fires phase-end notifications when the iframe is suspended",
+      "resultType": "no-view",
+      "schedule": {
+        "intervalSeconds": 60
+      }
     }
   ]
 }

@@ -3,7 +3,7 @@
   import {
     subscribe,
     start, pause, stop, skip,
-    clearHistory, getHistory, getSettings,
+    clearHistory, getHistory, getTimerSettings,
     type TimerState, type SessionRecord,
   } from '../lib/timerEngine';
   import {
@@ -16,7 +16,6 @@
   import CircularProgress from '../components/CircularProgress.svelte';
   import SessionDots      from '../components/SessionDots.svelte';
   import HistoryList      from '../components/HistoryList.svelte';
-  import SettingsPanel    from '../components/SettingsPanel.svelte';
 
   interface Props {
     notifService:     INotificationService;
@@ -32,7 +31,6 @@
   let timerState = $state<TimerState | null>(null);
   let history    = $state<SessionRecord[]>([]);
   let searchQuery                   = $state('');
-  let showSettings                  = $state(false);
   let showHistory                   = $state(true);
 
   // ---------------------------------------------------------------------------
@@ -43,7 +41,10 @@
   let secondsLeft    = $derived(timerState?.secondsRemaining ?? 0);
   let totalSecs      = $derived(timerState?.totalSeconds ?? 1);
   let sessions       = $derived(timerState?.sessionsCompleted ?? 0);
-  let sessionsBefore = $derived(getSettings().sessionsBeforeLongBreak);
+  // Re-read whenever the engine broadcasts — the engine fires a broadcast
+  // on every preference change, so `timerState` updates drive this
+  // derivation and it always reflects the current preferences.
+  let sessionsBefore = $derived(timerState ? getTimerSettings().sessionsBeforeLongBreak : 4);
 
   // ---------------------------------------------------------------------------
   // Subscribe to timer engine
@@ -108,14 +109,10 @@
         showHistory = !showHistory;
         break;
       case 'Escape':
-        if (showSettings) {
-          showSettings = false;
-        } else {
-          window.parent.postMessage({
-            type: 'asyar:extension:keydown',
-            payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
-          }, '*');
-        }
+        window.parent.postMessage({
+          type: 'asyar:extension:keydown',
+          payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
+        }, '*');
         break;
     }
   }
@@ -129,19 +126,9 @@
   // ---------------------------------------------------------------------------
   // View-scoped ⌘K actions (EXTENSION_VIEW context)
   // ---------------------------------------------------------------------------
-  const ACTION_SETTINGS      = 'org.asyar.pomodoro:view:open-settings';
   const ACTION_CLEAR_HISTORY = 'org.asyar.pomodoro:view:clear-history';
 
   function registerViewActions() {
-    actionService.registerAction({
-      id: ACTION_SETTINGS,
-      title: 'Open Timer Settings',
-      icon: '⚙️',
-      category: 'Settings',
-      extensionId,
-      context: ActionContext.EXTENSION_VIEW,
-      execute: async () => { showSettings = !showSettings; },
-    });
     actionService.registerAction({
       id: ACTION_CLEAR_HISTORY,
       title: 'Clear Session History',
@@ -162,7 +149,6 @@
   }
 
   function unregisterViewActions() {
-    actionService.unregisterAction(ACTION_SETTINGS);
     actionService.unregisterAction(ACTION_CLEAR_HISTORY);
   }
 
@@ -226,15 +212,6 @@
         title="Toggle history (H)"
       >
         📋
-      </button>
-      <button
-        class="icon-btn"
-        class:active={showSettings}
-        onclick={() => showSettings = !showSettings}
-        aria-label="Settings"
-        title="Settings (⚙)"
-      >
-        ⚙️
       </button>
     </div>
   </div>
@@ -321,11 +298,6 @@
       </div>
     {/if}
   </div>
-
-  <!-- Settings panel (slides in over the right column) -->
-  {#if showSettings}
-    <SettingsPanel onClose={() => showSettings = false} />
-  {/if}
 </div>
 
 <style>
@@ -414,8 +386,7 @@
     line-height: 1;
   }
 
-  .icon-btn:hover,
-  .icon-btn.active {
+  .icon-btn:hover {
     opacity: 1;
     background: var(--hover-bg);
   }
