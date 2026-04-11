@@ -280,9 +280,9 @@ export async function init(
   _storage = context.getService<IStorageService>('StorageService');
   _onComplete = onComplete ?? null;
 
-  // Load persisted history
+  // Load persisted history. StorageService.get returns Promise<string | null>.
   try {
-    const raw = await _storage.get<string | null>(KEY_HISTORY);
+    const raw = await _storage.get(KEY_HISTORY);
     if (typeof raw === 'string') {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) _history = parsed;
@@ -293,7 +293,7 @@ export async function init(
 
   // Load persisted state + reconstruct clock-based remaining time
   try {
-    const raw = await _storage.get<string | null>(KEY_STATE);
+    const raw = await _storage.get(KEY_STATE);
     if (typeof raw === 'string') {
       const parsed: TimerState = JSON.parse(raw);
       _state = { ...DEFAULT_STATE, ...parsed };
@@ -327,8 +327,16 @@ export async function init(
     _state = { ...DEFAULT_STATE };
   }
 
-  // For idle display: pre-fill totalSeconds so CircularProgress shows "25:00"
-  if (_state.phase === 'idle' && _state.totalSeconds === 0) {
+  // When the timer is idle, the display always reflects CURRENT preferences,
+  // not whatever `totalSeconds` happened to be persisted from a previous
+  // session or a previous pre-fill. Persisted state is only authoritative
+  // for *running* timers, where it anchors the clock reconstruction.
+  //
+  // This prevents a sticky-state bug where the engine would read
+  // persisted `{totalSeconds: 1500}` from an earlier session, take the
+  // "state already filled" branch, and never re-evaluate against fresh
+  // preferences — leaving the idle display stuck at the old value.
+  if (!_state.isRunning && _state.phase === 'idle') {
     const s = getSettings();
     _state.totalSeconds = s.focusMinutes * 60;
     _state.secondsRemaining = s.focusMinutes * 60;
