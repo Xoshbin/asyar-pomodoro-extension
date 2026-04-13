@@ -18,13 +18,17 @@ import 'asyar-sdk/tokens.css';
 import { mount } from 'svelte';
 import {
   ExtensionContext,
+  ExtensionBridge,
   registerIconElement,
   type INotificationService,
   type IActionService,
   type IClipboardHistoryService,
   type IStatusBarService,
   type IFeedbackService,
+  type ICommandService,
 } from 'asyar-sdk';
+import extensionModule from './index';
+import manifest from '../manifest.json';
 import {
   init as initTimer,
   start,
@@ -63,11 +67,19 @@ const context = new ExtensionContext();
 context.setExtensionId(extensionId);
 registerIconElement();
 
+// Register with ExtensionBridge so it can dispatch:
+//   - asyar:command:execute → extensionModule.executeCommand(commandId, args)
+// Without this, no-view commands (e.g. the scheduled `tick`) are silently dropped.
+const bridge = ExtensionBridge.getInstance();
+bridge.registerManifest(manifest as any);
+bridge.registerExtensionImplementation(extensionId, extensionModule);
+
 const notifService    = context.getService<INotificationService>('NotificationService');
 const actionService   = context.getService<IActionService>('ActionService');
 const clipboardService = context.getService<IClipboardHistoryService>('ClipboardHistoryService');
-const statusBarService = context.getService<IStatusBarService>('StatusBarService');
-const feedbackService = context.getService<IFeedbackService>('FeedbackService');
+const statusBarService  = context.getService<IStatusBarService>('StatusBarService');
+const feedbackService   = context.getService<IFeedbackService>('FeedbackService');
+const commandService    = context.getService<ICommandService>('CommandService');
 
 // ---------------------------------------------------------------------------
 // 3. Async bootstrap — the timer engine reads state from StorageService over
@@ -145,6 +157,7 @@ const feedbackService = context.getService<IFeedbackService>('FeedbackService');
     actionService,
     clipboardService,
     statusBarService,
+    commandService,
     extensionId,
   );
 

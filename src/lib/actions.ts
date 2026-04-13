@@ -9,7 +9,7 @@
 // at startup and never change.
 // ---------------------------------------------------------------------------
 
-import { type IActionService, type IClipboardHistoryService, type IStatusBarService, ActionContext, ClipboardItemType } from 'asyar-sdk';
+import { type IActionService, type IClipboardHistoryService, type IStatusBarService, type ICommandService, ActionContext, ClipboardItemType } from 'asyar-sdk';
 import { subscribe, start, pause, stop, skip, getHistory, formatTime, type TimerState } from './timerEngine';
 
 /** Send asyar:api:opener:open directly — MessageBroker is not in the public asyar-sdk export. */
@@ -65,6 +65,18 @@ function buildSummaryText(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Subtitle helpers
+// ---------------------------------------------------------------------------
+function buildSubtitle(state: TimerState): string | undefined {
+  if (state.phase === 'idle') return undefined;
+  const time = formatTime(state.secondsRemaining);
+  if (!state.isRunning) return `⏸ ${time} · Paused`;
+  if (state.phase === 'focus') return `🍅 ${time} · Focus`;
+  if (state.phase === 'short-break') return `☕ ${time} · Short break`;
+  return `🛋️ ${time} · Long break`;
+}
+
+// ---------------------------------------------------------------------------
 // setupGlobalActions — call once from main.ts
 // ---------------------------------------------------------------------------
 let _registeredTimerControls: string[] = [];
@@ -79,6 +91,7 @@ export function setupGlobalActions(
   actionService: IActionService,
   clipboardService: IClipboardHistoryService,
   statusBarService: IStatusBarService,
+  commandService: ICommandService,
   extensionId: string
 ): () => void {
   // --- Persistent utility actions (registered once, never change) -----------
@@ -146,6 +159,12 @@ export function setupGlobalActions(
         trayItemRegistered = false;
       }
     }
+
+    // Update search result subtitle for both timer commands so the user can
+    // see the live countdown without opening the view.
+    const subtitle = buildSubtitle(state);
+    commandService.updateCommandMetadata('open-timer', { subtitle }).catch(console.error);
+    commandService.updateCommandMetadata('start-timer', { subtitle }).catch(console.error);
 
     if (state.phase === 'idle') {
       actionService.registerAction({
