@@ -36,7 +36,7 @@ import {
   destroy as destroyTimer,
 } from './lib/timerEngine';
 
-import { setupGlobalActions } from './lib/actions';
+import { setupGlobalActions, registerManifestHandlers } from './lib/actions';
 
 import {
   notifyFocusComplete,
@@ -151,11 +151,16 @@ const commandService    = context.getService<ICommandService>('CommandService');
   });
 
   // ------------------------------------------------------------------------
-  // 7. Register global ⌘K actions (dynamic, tracks timer state)
+  // 7. Register ⌘K actions
+  //    a) Manifest-declared handlers (copy-summary, learn-more) — the host
+  //       registered these from manifest.json; we just wire the execute logic.
+  //    b) Global dynamic actions (timer controls) — re-registered on each
+  //       state change to embed live countdown in titles.
   // ------------------------------------------------------------------------
+  registerManifestHandlers(actionService, clipboardService, extensionId);
+
   const cleanupActions = setupGlobalActions(
     actionService,
-    clipboardService,
     statusBarService,
     commandService,
     extensionId,

@@ -29,8 +29,6 @@ export const ACTION_PAUSE         = 'org.asyar.pomodoro:pause';
 export const ACTION_RESUME        = 'org.asyar.pomodoro:resume';
 export const ACTION_STOP          = 'org.asyar.pomodoro:stop';
 export const ACTION_SKIP          = 'org.asyar.pomodoro:skip';
-export const ACTION_COPY_SUMMARY  = 'org.asyar.pomodoro:copy-summary';
-export const ACTION_OPEN_BROWSER  = 'org.asyar.pomodoro:learn-more';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,6 +75,34 @@ function buildSubtitle(state: TimerState): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// registerManifestHandlers — wire up handlers for manifest-declared actions
+//
+// These two actions are declared in manifest.json (extension-level `actions`
+// array) so the host registers them with visibility rules automatically.
+// All we do here is register the execute handler that runs in this iframe.
+// ---------------------------------------------------------------------------
+export function registerManifestHandlers(
+  actionService: IActionService,
+  clipboardService: IClipboardHistoryService,
+  extensionId: string,
+): void {
+  actionService.registerActionHandler('copy-summary', async () => {
+    const text = buildSummaryText();
+    await clipboardService.writeToClipboard({
+      id: crypto.randomUUID(),
+      type: ClipboardItemType.Text,
+      content: text,
+      createdAt: Date.now(),
+      favorite: false,
+    });
+  });
+
+  actionService.registerActionHandler('learn-more', async () => {
+    openUrl('https://en.wikipedia.org/wiki/Pomodoro_Technique', extensionId);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // setupGlobalActions — call once from main.ts
 // ---------------------------------------------------------------------------
 let _registeredTimerControls: string[] = [];
@@ -89,45 +115,10 @@ const TRAY_ITEM_ID = 'timer-status';
  */
 export function setupGlobalActions(
   actionService: IActionService,
-  clipboardService: IClipboardHistoryService,
   statusBarService: IStatusBarService,
   commandService: ICommandService,
   extensionId: string
 ): () => void {
-  // --- Persistent utility actions (registered once, never change) -----------
-  actionService.registerAction({
-    id: ACTION_COPY_SUMMARY,
-    title: 'Copy Session Summary',
-    description: "Copy today's Pomodoro summary to clipboard",
-    icon: '📋',
-    category: 'History',
-    extensionId,
-    context: ActionContext.GLOBAL,
-    execute: async () => {
-      const text = buildSummaryText();
-      await clipboardService.writeToClipboard({
-        id: crypto.randomUUID(),
-        type: ClipboardItemType.Text,
-        content: text,
-        createdAt: Date.now(),
-        favorite: false,
-      });
-    },
-  });
-
-  actionService.registerAction({
-    id: ACTION_OPEN_BROWSER,
-    title: 'Learn About Pomodoro',
-    description: 'Open the Pomodoro Technique on Wikipedia',
-    icon: '🔗',
-    category: 'About',
-    extensionId,
-    context: ActionContext.GLOBAL,
-    execute: async () => {
-      openUrl('https://en.wikipedia.org/wiki/Pomodoro_Technique', extensionId);
-    },
-  });
-
   // --- Dynamic timer-control actions (re-registered on each state change) --
   const unsubscribe = subscribe((state: TimerState) => {
     // Unregister previous timer-control actions
@@ -259,18 +250,17 @@ export function setupGlobalActions(
     }
   });
 
-  // Return full cleanup function
+  // Return cleanup for dynamic timer-control actions only.
+  // copy-summary and learn-more are manifest-declared — the host owns those
+  // registrations and cleans them up when the extension is unloaded.
   return () => {
     unsubscribe();
     _registeredTimerControls.forEach(id => actionService.unregisterAction(id));
     _registeredTimerControls = [];
-    actionService.unregisterAction(ACTION_COPY_SUMMARY);
-    actionService.unregisterAction(ACTION_OPEN_BROWSER);
     if (trayItemRegistered) {
       statusBarService.unregisterItem(TRAY_ITEM_ID);
       trayItemRegistered = false;
     }
-    // Clear any remaining known IDs defensively
     TIMER_CONTROL_IDS.forEach(id => actionService.unregisterAction(id));
   };
 }

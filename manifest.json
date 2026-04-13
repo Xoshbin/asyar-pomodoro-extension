@@ -59,6 +59,22 @@
       "default": false
     }
   ],
+  "actions": [
+    {
+      "id": "copy-summary",
+      "title": "Copy Session Summary",
+      "description": "Copy today's Pomodoro summary to clipboard",
+      "icon": "📋",
+      "category": "History"
+    },
+    {
+      "id": "learn-more",
+      "title": "Learn About Pomodoro",
+      "description": "Open the Pomodoro Technique on Wikipedia",
+      "icon": "🔗",
+      "category": "About"
+    }
+  ],
   "commands": [
     {
       "id": "start-timer",
