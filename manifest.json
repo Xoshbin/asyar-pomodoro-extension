@@ -1,7 +1,7 @@
 {
   "id": "org.asyar.pomodoro",
   "name": "Pomodoro Timer",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Focus timer using the Pomodoro technique. Configurable focus and break durations, session tracking, and background phase detection.",
   "author": "Asyar",
   "searchable": true,
