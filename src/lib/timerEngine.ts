@@ -104,7 +104,7 @@ let _unsubPrefs: (() => void) | null = null;
 // Called on every phase transition and on every preference change.
 // ---------------------------------------------------------------------------
 function getSettings(): TimerSettings {
-  const prefs = _context?.preferences;
+  const prefs = _context?.preferences.values;
   if (!prefs) return { ...DEFAULT_SETTINGS };
 
   const clampNumber = (v: unknown, min: number, max: number, fallback: number): number => {
