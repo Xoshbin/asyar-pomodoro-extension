@@ -277,7 +277,7 @@ export async function init(
   onComplete?: (completed: TimerPhase, next: TimerPhase) => void
 ): Promise<void> {
   _context = context;
-  _storage = context.getService<IStorageService>('StorageService');
+  _storage = context.getService<IStorageService>('storage');
   _onComplete = onComplete ?? null;
 
   // Load persisted history. StorageService.get returns Promise<string | null>.

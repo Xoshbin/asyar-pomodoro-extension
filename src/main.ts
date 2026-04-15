@@ -74,12 +74,12 @@ const bridge = ExtensionBridge.getInstance();
 bridge.registerManifest(manifest as any);
 bridge.registerExtensionImplementation(extensionId, extensionModule);
 
-const notifService    = context.getService<INotificationService>('NotificationService');
-const actionService   = context.getService<IActionService>('ActionService');
-const clipboardService = context.getService<IClipboardHistoryService>('ClipboardHistoryService');
-const statusBarService  = context.getService<IStatusBarService>('StatusBarService');
-const feedbackService   = context.getService<IFeedbackService>('FeedbackService');
-const commandService    = context.getService<ICommandService>('CommandService');
+const notifService    = context.getService<INotificationService>('notifications');
+const actionService   = context.getService<IActionService>('actions');
+const clipboardService = context.getService<IClipboardHistoryService>('clipboard');
+const statusBarService  = context.getService<IStatusBarService>('statusBar');
+const feedbackService   = context.getService<IFeedbackService>('feedback');
+const commandService    = context.getService<ICommandService>('commands');
 
 // ---------------------------------------------------------------------------
 // 3. Async bootstrap — the timer engine reads state from StorageService over
