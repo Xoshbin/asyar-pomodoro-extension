@@ -138,7 +138,7 @@
       extensionId,
       context: ActionContext.EXTENSION_VIEW,
       execute: async () => {
-        await notifService.notify({
+        await notifService.send({
           title: '🗑️ History cleared',
           body: 'All session records have been deleted.',
         }).catch(console.error);
@@ -174,7 +174,7 @@
       favorite: false,
     });
 
-    await notifService.notify({ title: '📋 Copied!', body: 'Session summary copied to clipboard.' }).catch(console.error);
+    await notifService.send({ title: '📋 Copied!', body: 'Session summary copied to clipboard.' }).catch(console.error);
   }
 
   // ---------------------------------------------------------------------------
