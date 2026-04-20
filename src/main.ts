@@ -18,7 +18,7 @@ import 'asyar-sdk/tokens.css';
 import { mount } from 'svelte';
 import {
   ExtensionContext,
-  ExtensionBridge,
+  extensionBridge,
   registerIconElement,
   type INotificationService,
   type IActionService,
@@ -70,9 +70,8 @@ registerIconElement();
 // Register with ExtensionBridge so it can dispatch:
 //   - asyar:command:execute → extensionModule.executeCommand(commandId, args)
 // Without this, no-view commands (e.g. the scheduled `tick`) are silently dropped.
-const bridge = ExtensionBridge.getInstance();
-bridge.registerManifest(manifest as any);
-bridge.registerExtensionImplementation(extensionId, extensionModule);
+extensionBridge.registerManifest(manifest as any);
+extensionBridge.registerExtensionImplementation(extensionId, extensionModule);
 
 const notifService    = context.getService<INotificationService>('notifications');
 const actionService   = context.getService<IActionService>('actions');
