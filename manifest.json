@@ -6,7 +6,6 @@
   "author": "Asyar",
   "searchable": true,
   "icon": "🍅",
-  "defaultView": "TimerView",
   "asyarSdk": "^1.13.0",
   "permissions": [
     "notifications:send",
@@ -80,26 +79,29 @@
       "id": "start-timer",
       "name": "Start Pomodoro",
       "description": "Start a focus session and close the launcher",
-      "resultType": "no-view",
-      "view": "NoView",
-      "icon": "▶️"
+      "icon": "▶️",
+      "mode": "background"
     },
     {
       "id": "open-timer",
       "name": "Pomodoro Timer",
       "description": "Open the timer view with live countdown",
-      "resultType": "view",
-      "view": "TimerView",
-      "icon": "🍅"
+      "icon": "🍅",
+      "mode": "view",
+      "component": "TimerView"
     },
     {
       "id": "tick",
       "name": "Pomodoro Tick",
       "description": "Background tick that advances the timer and fires phase-end notifications when the iframe is suspended",
-      "resultType": "no-view",
       "schedule": {
         "intervalSeconds": 60
-      }
+      },
+      "mode": "background"
     }
-  ]
+  ],
+  "type": "extension",
+  "background": {
+    "main": "dist/worker.js"
+  }
 }
