@@ -1,49 +1,26 @@
-import type { INotificationService } from 'asyar-sdk';
+import type { INotificationService } from 'asyar-sdk/contracts';
 import type { TimerPhase } from './timerEngine';
-import { formatTime } from './timerEngine';
+
+// Helpers propagate errors to the caller — the worker's invocation sites
+// wrap them in `.catch(log.error)` so failures land in the extension log
+// rather than the DevTools console.
 
 export async function notifyFocusComplete(
   notifService: INotificationService,
   nextPhase: TimerPhase,
-  totalSessionsEver: number
+  totalSessionsEver: number,
 ): Promise<void> {
-  const body = `Time for a ${nextPhase === 'long-break' ? 'long' : '5-minute'} break. You've completed ${totalSessionsEver} session${totalSessionsEver !== 1 ? 's' : ''} today.`;
-  await notifService.send({ title: '🍅 Focus session complete!', body }).catch(console.error);
+  const suffix = nextPhase === 'long-break' ? 'long' : '5-minute';
+  const plural = totalSessionsEver === 1 ? '' : 's';
+  const body = `Time for a ${suffix} break. You've completed ${totalSessionsEver} session${plural} today.`;
+  await notifService.send({ title: '🍅 Focus session complete!', body });
 }
 
-export async function notifyBreakComplete(notifService: INotificationService): Promise<void> {
+export async function notifyBreakComplete(
+  notifService: INotificationService,
+): Promise<void> {
   await notifService.send({
     title: '⏰ Break over!',
     body: 'Ready to focus? Start your next Pomodoro.',
-  }).catch(console.error);
-}
-
-export async function notifyStarted(
-  notifService: INotificationService,
-  minutes: number
-): Promise<void> {
-  await notifService.send({
-    title: '▶️ Pomodoro started',
-    body: `${minutes} minutes of focus. You've got this.`,
-  }).catch(console.error);
-}
-
-export async function notifyAlreadyRunning(
-  notifService: INotificationService,
-  secondsRemaining: number
-): Promise<void> {
-  await notifService.send({
-    title: '⏱️ Timer already running',
-    body: `${formatTime(secondsRemaining)} remaining in your focus session.`,
-  }).catch(console.error);
-}
-
-export async function notifyPaused(
-  notifService: INotificationService,
-  secondsRemaining: number
-): Promise<void> {
-  await notifService.send({
-    title: '⏸️ Timer paused',
-    body: `${formatTime(secondsRemaining)} remaining. Resume when you're ready.`,
-  }).catch(console.error);
+  });
 }

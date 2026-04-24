@@ -6,13 +6,11 @@
   "author": "Asyar",
   "searchable": true,
   "icon": "🍅",
-  "asyarSdk": "^1.13.0",
+  "asyarSdk": "^1.15.0",
   "permissions": [
     "notifications:send",
     "clipboard:write",
-    "shell:open-url",
-    "storage:read",
-    "storage:write"
+    "shell:open-url"
   ],
   "preferences": [
     {
@@ -78,7 +76,7 @@
     {
       "id": "start-timer",
       "name": "Start Pomodoro",
-      "description": "Start a focus session and close the launcher",
+      "description": "Start a focus session",
       "icon": "▶️",
       "mode": "background"
     },
@@ -97,6 +95,34 @@
       "schedule": {
         "intervalSeconds": 60
       },
+      "mode": "background"
+    },
+    {
+      "id": "pause-timer",
+      "name": "Pause Pomodoro",
+      "description": "Pause the running timer",
+      "icon": "⏸️",
+      "mode": "background"
+    },
+    {
+      "id": "resume-timer",
+      "name": "Resume Pomodoro",
+      "description": "Resume a paused timer",
+      "icon": "▶️",
+      "mode": "background"
+    },
+    {
+      "id": "stop-timer",
+      "name": "Stop Pomodoro",
+      "description": "Stop and reset the timer",
+      "icon": "⏹️",
+      "mode": "background"
+    },
+    {
+      "id": "skip-timer",
+      "name": "Skip Phase",
+      "description": "Skip to the next phase",
+      "icon": "⏭️",
       "mode": "background"
     }
   ],

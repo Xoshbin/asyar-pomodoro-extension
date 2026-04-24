@@ -1,79 +1,195 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import {
-    subscribe,
-    start, pause, stop, skip,
-    clearHistory, getHistory, getTimerSettings,
-    type TimerState, type SessionRecord,
+  import { onMount } from 'svelte';
+  import type {
+    ExtensionContext,
+    IActionService,
+    IClipboardHistoryService,
+    ExtensionStateProxy,
+  } from 'asyar-sdk/view';
+  import { ActionContext, ClipboardItemType } from 'asyar-sdk/view';
+
+  import type {
+    TimerState,
+    TimerPhase,
+    HistoryEntry,
   } from '../lib/timerEngine';
-  import {
-    type INotificationService, type IActionService,
-    type IClipboardHistoryService,
-    ActionContext, ClipboardItemType
-  } from 'asyar-sdk';
-  import { notifyPaused } from '../lib/notifications';
+  import { buildSummaryText } from '../lib/summary';
 
   import CircularProgress from '../components/CircularProgress.svelte';
   import SessionDots      from '../components/SessionDots.svelte';
   import HistoryList      from '../components/HistoryList.svelte';
 
   interface Props {
-    notifService:     INotificationService;
-    actionService:    IActionService;
-    clipboardService: IClipboardHistoryService;
-    extensionId:      string;
+    context: ExtensionContext;
   }
-  let { notifService, actionService, clipboardService, extensionId }: Props = $props();
+  let { context }: Props = $props();
+
+  const extensionId = 'org.asyar.pomodoro';
+  const ACTION_CLEAR_HISTORY = 'org.asyar.pomodoro:view:clear-history';
+
+  const stateProxy    = $derived(context.getService<ExtensionStateProxy>('state'));
+  const actionService = $derived(context.getService<IActionService>('actions'));
+  const clipboardSvc  = $derived(context.getService<IClipboardHistoryService>('clipboard'));
 
   // ---------------------------------------------------------------------------
-  // State
+  // Reactive state — all worker-owned; view reads + subscribes.
   // ---------------------------------------------------------------------------
-  let timerState = $state<TimerState | null>(null);
-  let history    = $state<SessionRecord[]>([]);
-  let searchQuery                   = $state('');
-  let showHistory                   = $state(true);
+  let timer: TimerState | null = $state(null);
+  let history: HistoryEntry[]  = $state([]);
+  let now: number              = $state(Date.now());
+  let searchQuery              = $state('');
+  let showHistory              = $state(true);
 
   // ---------------------------------------------------------------------------
-  // Derived helpers
+  // Derived display values — computed locally, no cross-boundary traffic.
   // ---------------------------------------------------------------------------
-  let isRunning      = $derived(timerState?.isRunning ?? false);
-  let phase          = $derived(timerState?.phase ?? 'idle');
-  let secondsLeft    = $derived(timerState?.secondsRemaining ?? 0);
-  let totalSecs      = $derived(timerState?.totalSeconds ?? 1);
-  let sessions       = $derived(timerState?.sessionsCompleted ?? 0);
-  // Re-read whenever the engine broadcasts — the engine fires a broadcast
-  // on every preference change, so `timerState` updates drive this
-  // derivation and it always reflects the current preferences.
-  let sessionsBefore = $derived(timerState ? getTimerSettings().sessionsBeforeLongBreak : 4);
+  const isRunning   = $derived(timer?.isRunning ?? false);
+  const phase: TimerPhase = $derived(timer?.phase ?? 'idle');
+  const totalSecs   = $derived(timer?.totalSeconds ?? 1);
+  const sessions    = $derived(timer?.sessionsCompleted ?? 0);
+
+  const remainingSeconds = $derived.by(() => {
+    if (!timer) return 0;
+    if (timer.isRunning && timer.phaseEndsAt !== null) {
+      return Math.max(0, Math.ceil((timer.phaseEndsAt - now) / 1000));
+    }
+    if (timer.pausedRemainingSeconds !== null) {
+      return timer.pausedRemainingSeconds;
+    }
+    return timer.totalSeconds;
+  });
+
+  const sessionsBefore = $derived.by(() => {
+    const v = context.preferences.values.sessionsBeforeLongBreak;
+    return typeof v === 'number' && Number.isFinite(v) ? v : 4;
+  });
+
+  const isPaused = $derived(
+    !!timer &&
+      !timer.isRunning &&
+      timer.phase !== 'idle' &&
+      timer.pausedRemainingSeconds !== null,
+  );
 
   // ---------------------------------------------------------------------------
-  // Subscribe to timer engine
+  // Bootstrap: get initial state + subscribe + local tick + actions.
   // ---------------------------------------------------------------------------
-  let unsubTimer: (() => void) | null = null;
-
   onMount(() => {
-    unsubTimer = subscribe((s: TimerState) => {
-      timerState = s;
-      history    = getHistory();
+    let cleanup: Array<() => void | Promise<void>> = [];
+    let active = true;
+
+    (async () => {
+      const [initialTimer, initialHistory, unsubTimer, unsubHistory] =
+        await Promise.all([
+          stateProxy.get('timer'),
+          stateProxy.get('history'),
+          stateProxy.subscribe('timer', (v) => {
+            if (!active) return;
+            timer = (v as TimerState | null) ?? null;
+          }),
+          stateProxy.subscribe('history', (v) => {
+            if (!active) return;
+            history = Array.isArray(v) ? (v as HistoryEntry[]) : [];
+          }),
+        ]);
+
+      if (!active) {
+        void unsubTimer();
+        void unsubHistory();
+        return;
+      }
+
+      timer   = (initialTimer as TimerState | null) ?? null;
+      history = Array.isArray(initialHistory) ? (initialHistory as HistoryEntry[]) : [];
+
+      cleanup.push(unsubTimer, unsubHistory);
+    })().catch((err) => {
+      context.getService<import('asyar-sdk/view').ILogService>('log').error(
+        `TimerView bootstrap failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     });
 
-    window.addEventListener('message', handleHostMessage);
-    registerViewActions();
-  });
+    const tickHandle = window.setInterval(() => {
+      now = Date.now();
+    }, 500);
+    cleanup.push(() => window.clearInterval(tickHandle));
 
-  onDestroy(() => {
-    unsubTimer?.();
-    window.removeEventListener('message', handleHostMessage);
-    unregisterViewActions();
+    window.addEventListener('message', handleHostMessage);
+    cleanup.push(() => window.removeEventListener('message', handleHostMessage));
+
+    registerViewActions();
+    cleanup.push(() => unregisterViewActions());
+
+    return () => {
+      active = false;
+      for (const fn of cleanup) {
+        try {
+          void fn();
+        } catch {
+          // Best-effort teardown.
+        }
+      }
+    };
   });
 
   // ---------------------------------------------------------------------------
-  // Host message handler (keydown forwarding + view search)
+  // Manifest-action handlers (see design §4-A deviation: registered from view
+  // because worker has no actions service). Also registers the view-scoped
+  // clear-history action.
+  // ---------------------------------------------------------------------------
+  function registerViewActions(): void {
+    actionService.registerActionHandler('copy-summary', async () => {
+      await writeSummaryToClipboard();
+    });
+    actionService.registerActionHandler('learn-more', async () => {
+      openExternal('https://en.wikipedia.org/wiki/Pomodoro_Technique');
+    });
+
+    actionService.registerAction({
+      id: ACTION_CLEAR_HISTORY,
+      title: 'Clear Session History',
+      description: 'Permanently removes all recorded sessions',
+      icon: '🗑️',
+      category: 'Settings',
+      extensionId,
+      context: ActionContext.EXTENSION_VIEW,
+      execute: async () => {
+        await context.request('clearHistory', {});
+      },
+    });
+  }
+
+  function unregisterViewActions(): void {
+    try { actionService.unregisterAction(ACTION_CLEAR_HISTORY); } catch { /* noop */ }
+  }
+
+  async function writeSummaryToClipboard(): Promise<void> {
+    const text = buildSummaryText({ now: Date.now(), history });
+    await clipboardSvc.writeToClipboard({
+      id: crypto.randomUUID(),
+      type: ClipboardItemType.Text,
+      content: text,
+      createdAt: Date.now(),
+      favorite: false,
+    });
+  }
+
+  function openExternal(url: string): void {
+    const messageId =
+      Math.random().toString(36).slice(2) +
+      Math.random().toString(36).slice(2);
+    window.parent.postMessage(
+      { type: 'asyar:api:opener:open', payload: { url }, messageId, extensionId },
+      '*',
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Host message forwarding (keydown, view search).
   // ---------------------------------------------------------------------------
   function handleHostMessage(event: MessageEvent) {
     if (event.source !== window.parent) return;
     const { type, payload } = event.data ?? {};
-
     if (type === 'asyar:view:keydown') {
       handleKeydown(payload);
     } else if (type === 'asyar:view:search') {
@@ -81,38 +197,32 @@
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Keyboard shortcuts
-  // ---------------------------------------------------------------------------
-  function handleKeydown(kev: { key: string; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean }) {
+  function handleKeydown(kev: { key: string } | undefined) {
     if (!kev) return;
-
     switch (kev.key) {
       case ' ':
-        if (isRunning) {
-          pause();
-          notifyPaused(notifService, timerState?.secondsRemaining ?? 0).catch(console.error);
-        } else {
-          start();
-        }
+        void (isRunning ? context.request('pause', {}) : context.request('start', {}));
         break;
       case 's':
       case 'S':
-        stop();
+        void context.request('stop', {});
         break;
       case 'n':
       case 'N':
-        skip();
+        void context.request('skip', {});
         break;
       case 'h':
       case 'H':
         showHistory = !showHistory;
         break;
       case 'Escape':
-        window.parent.postMessage({
-          type: 'asyar:extension:keydown',
-          payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
-        }, '*');
+        window.parent.postMessage(
+          {
+            type: 'asyar:extension:keydown',
+            payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
+          },
+          '*',
+        );
         break;
     }
   }
@@ -124,70 +234,38 @@
   }
 
   // ---------------------------------------------------------------------------
-  // View-scoped ⌘K actions (EXTENSION_VIEW context)
-  // ---------------------------------------------------------------------------
-  const ACTION_CLEAR_HISTORY = 'org.asyar.pomodoro:view:clear-history';
-
-  function registerViewActions() {
-    actionService.registerAction({
-      id: ACTION_CLEAR_HISTORY,
-      title: 'Clear Session History',
-      description: 'Permanently removes all recorded sessions',
-      icon: '🗑️',
-      category: 'Settings',
-      extensionId,
-      context: ActionContext.EXTENSION_VIEW,
-      execute: async () => {
-        await notifService.send({
-          title: '🗑️ History cleared',
-          body: 'All session records have been deleted.',
-        }).catch(console.error);
-        clearHistory();
-        history = [];
-      },
-    });
-  }
-
-  function unregisterViewActions() {
-    actionService.unregisterAction(ACTION_CLEAR_HISTORY);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Copy session summary
-  // ---------------------------------------------------------------------------
-  async function copySessionSummary() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayFocus = history.filter(r => r.phase === 'focus' && r.completedAt >= today.getTime() && !r.wasInterrupted);
-    const totalMins  = Math.round(todayFocus.reduce((a, r) => a + r.durationMinutes, 0));
-    const text = [
-      `🍅 Pomodoro Summary — ${new Date().toLocaleDateString()}`,
-      `• Focus sessions: ${todayFocus.length}`,
-      `• Total focus time: ${totalMins} minutes`,
-    ].join('\n');
-
-    await clipboardService.writeToClipboard({
-      id: crypto.randomUUID(),
-      type: ClipboardItemType.Text,
-      content: text,
-      createdAt: Date.now(),
-      favorite: false,
-    });
-
-    await notifService.send({ title: '📋 Copied!', body: 'Session summary copied to clipboard.' }).catch(console.error);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Phase toggle (primary button)
+  // Primary / secondary button handlers — all fan out to worker via RPC.
   // ---------------------------------------------------------------------------
   function handlePrimaryButton() {
-    if (isRunning) {
-      pause();
-      notifyPaused(notifService, timerState?.secondsRemaining ?? 0).catch(console.error);
-    } else {
-      start();
-    }
+    void (isRunning ? context.request('pause', {}) : context.request('start', {}));
   }
+  function handleStop()  { void context.request('stop', {}); }
+  function handleSkip()  { void context.request('skip', {}); }
+
+  // ---------------------------------------------------------------------------
+  // Copy button in-view (parity with the ⌘K copy-summary action).
+  // ---------------------------------------------------------------------------
+  async function copyFromHeader(): Promise<void> {
+    await writeSummaryToClipboard();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Skeleton state — until the initial svc.state.get resolves.
+  // ---------------------------------------------------------------------------
+  const timerReady = $derived(timer !== null);
+  const timeDisplay = $derived.by(() => {
+    if (!timerReady) return '--:--';
+    const m = Math.floor(remainingSeconds / 60);
+    const s = remainingSeconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  });
+
+  const primaryLabel = $derived.by(() => {
+    if (!timerReady) return '— Loading';
+    if (isRunning) return '⏸ Pause';
+    if (phase === 'idle') return '▶ Start';
+    return '▶ Resume';
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -198,16 +276,18 @@
   aria-label="Pomodoro Timer"
   tabindex="-1"
 >
-  <!-- ─────────────────── Header ─────────────────────────────────────────── -->
   <div class="header">
     <div class="title">
       <span class="title-icon" aria-hidden="true">🍅</span>
       <span>Pomodoro Timer</span>
+      {#if isPaused}
+        <span class="paused-badge">Paused</span>
+      {/if}
     </div>
     <div class="header-actions">
       <button
         class="icon-btn"
-        onclick={() => showHistory = !showHistory}
+        onclick={() => (showHistory = !showHistory)}
         aria-label="{showHistory ? 'Hide' : 'Show'} history"
         title="Toggle history (H)"
       >
@@ -216,18 +296,14 @@
     </div>
   </div>
 
-  <!-- ─────────────────── Main content ──────────────────────────────────── -->
   <div class="main-content">
-    <!-- Left: Timer + controls -->
     <div class="timer-column">
-      {#if timerState}
-        <CircularProgress
-          secondsRemaining={secondsLeft}
-          totalSeconds={totalSecs}
-          phase={phase}
-          isRunning={isRunning}
-        />
-      {/if}
+      <CircularProgress
+        secondsRemaining={remainingSeconds}
+        totalSeconds={totalSecs}
+        phase={phase}
+        isRunning={isRunning}
+      />
 
       <SessionDots
         sessionsCompleted={sessions}
@@ -235,33 +311,23 @@
         isCurrentlyFocus={isRunning && phase === 'focus'}
       />
 
-      <!-- Controls -->
       <div class="controls">
         <button
           class="btn-primary"
           class:running={isRunning}
           onclick={handlePrimaryButton}
-          aria-label={isRunning ? 'Pause' : (phase === 'idle' ? 'Start' : 'Resume')}
+          disabled={!timerReady}
+          aria-label={primaryLabel}
           title="Space"
         >
-          {isRunning ? '⏸ Pause' : phase === 'idle' ? '▶ Start' : '▶ Resume'}
+          {primaryLabel}
         </button>
 
-        {#if phase !== 'idle'}
-          <button
-            class="btn-secondary"
-            onclick={() => stop()}
-            aria-label="Stop timer"
-            title="S"
-          >
+        {#if timerReady && phase !== 'idle'}
+          <button class="btn-secondary" onclick={handleStop} aria-label="Stop timer" title="S">
             ■ Stop
           </button>
-          <button
-            class="btn-secondary"
-            onclick={() => skip()}
-            aria-label="Skip to next phase"
-            title="N"
-          >
+          <button class="btn-secondary" onclick={handleSkip} aria-label="Skip to next phase" title="N">
             ⏭ Skip
           </button>
         {/if}
@@ -272,9 +338,14 @@
         <span>N = skip</span>
         <span>S = stop</span>
       </div>
+
+      {#if !timerReady}
+        <div class="skeleton-note" aria-live="polite">Loading timer state…</div>
+      {:else}
+        <div class="visually-hidden" aria-live="polite">{timeDisplay}</div>
+      {/if}
     </div>
 
-    <!-- Right: History -->
     {#if showHistory}
       <div class="history-column">
         <div class="history-header">
@@ -282,7 +353,7 @@
           {#if history.length > 0}
             <button
               class="copy-btn"
-              onclick={copySessionSummary}
+              onclick={copyFromHeader}
               title="Copy today's summary to clipboard"
               aria-label="Copy session summary"
             >
@@ -301,7 +372,6 @@
 </div>
 
 <style>
-  /* Semantic Pomodoro phase colours — same in both modes */
   :global(:root) {
     --pomodoro-focus:      #ef4444;
     --pomodoro-break:      #22c55e;
@@ -309,7 +379,6 @@
     --pomodoro-idle:       #6b7280;
   }
 
-  /* Dark mode — pomodoro-specific tokens not in tokens.css */
   @media (prefers-color-scheme: dark) {
     :global(:root) {
       --text-muted:  rgba(235, 235, 245, 0.35);
@@ -318,7 +387,6 @@
     }
   }
 
-  /* Light mode — matches Asyar host palette */
   @media (prefers-color-scheme: light) {
     :global(:root) {
       --bg-primary:    rgb(242, 242, 247);
@@ -345,7 +413,6 @@
     outline: none;
   }
 
-  /* ── Header ──────────────────────────────────────────────────────────── */
   .header {
     display: flex;
     align-items: center;
@@ -364,15 +431,19 @@
     color: var(--text-primary);
   }
 
-  .title-icon {
-    font-size: 16px;
+  .title-icon { font-size: 16px; }
+
+  .paused-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(107, 114, 128, 0.2);
+    color: var(--pomodoro-idle);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
   }
 
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+  .header-actions { display: flex; align-items: center; gap: 4px; }
 
   .icon-btn {
     background: none;
@@ -385,13 +456,8 @@
     transition: opacity 0.15s, background 0.15s;
     line-height: 1;
   }
+  .icon-btn:hover { opacity: 1; background: var(--hover-bg); }
 
-  .icon-btn:hover {
-    opacity: 1;
-    background: var(--hover-bg);
-  }
-
-  /* ── Main layout ─────────────────────────────────────────────────────── */
   .main-content {
     display: flex;
     flex: 1;
@@ -399,7 +465,6 @@
     min-height: 0;
   }
 
-  /* ── Timer column ────────────────────────────────────────────────────── */
   .timer-column {
     display: flex;
     flex-direction: column;
@@ -411,7 +476,6 @@
     width: 240px;
   }
 
-  /* ── Controls ────────────────────────────────────────────────────────── */
   .controls {
     display: flex;
     flex-direction: column;
@@ -433,18 +497,10 @@
     transition: opacity 0.15s, transform 0.1s;
     letter-spacing: 0.3px;
   }
-
-  .btn-primary.running {
-    background-color: var(--pomodoro-idle);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.85;
-  }
-
-  .btn-primary:active {
-    transform: scale(0.97);
-  }
+  .btn-primary.running { background-color: var(--pomodoro-idle); }
+  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .btn-secondary {
     width: 140px;
@@ -458,7 +514,6 @@
     color: var(--text-secondary);
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-
   .btn-secondary:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
@@ -475,7 +530,23 @@
     justify-content: center;
   }
 
-  /* ── History column ──────────────────────────────────────────────────── */
+  .skeleton-note {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .history-column {
     flex: 1;
     display: flex;
@@ -513,7 +584,6 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-
   .copy-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
