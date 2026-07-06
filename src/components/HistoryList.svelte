@@ -71,6 +71,8 @@
     width: 100%;
     height: 100%;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 
   ul {
@@ -82,16 +84,16 @@
   .history-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
     transition: background-color 0.1s ease;
   }
 
   .history-item:hover {
-    background-color: var(--hover-bg, rgba(255,255,255,0.05));
+    background-color: var(--bg-hover);
   }
 
   .history-item.interrupted {
@@ -99,13 +101,13 @@
   }
 
   .icon {
-    font-size: 13px;
+    font-size: var(--font-size-md);
     flex-shrink: 0;
   }
 
   .label {
     flex: 1;
-    color: var(--text-primary, rgba(255,255,255,0.85));
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -113,16 +115,16 @@
 
   .duration {
     font-variant-numeric: tabular-nums;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary);
     flex-shrink: 0;
   }
 
   .interrupted-badge {
     font-size: 9px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-xs);
+    background: color-mix(in srgb, var(--accent-danger) 20%, transparent);
+    color: var(--accent-danger);
     flex-shrink: 0;
   }
 
@@ -130,8 +132,8 @@
     flex-shrink: 0;
     text-align: right;
     min-width: 60px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    font-size: 11px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
   }
 
   .empty-state {
@@ -139,9 +141,9 @@
     align-items: center;
     justify-content: center;
     height: 100px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    font-size: 12px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
     text-align: center;
-    padding: 16px;
+    padding: var(--space-6);
   }
 </style>

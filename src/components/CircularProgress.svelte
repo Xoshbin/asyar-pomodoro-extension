@@ -108,15 +108,15 @@
   }
 
   .time-text {
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-family: var(--font-mono);
     font-size: 36px;
     font-weight: 700;
     letter-spacing: -1px;
   }
 
   .phase-label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px;
+    font-family: var(--font-ui);
+    font-size: var(--font-size-xs);
     font-weight: 600;
     letter-spacing: 2px;
     text-transform: uppercase;

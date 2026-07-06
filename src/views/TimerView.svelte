@@ -373,31 +373,10 @@
 
 <style>
   :global(:root) {
-    --pomodoro-focus:      #ef4444;
-    --pomodoro-break:      #22c55e;
-    --pomodoro-long-break: #3b82f6;
-    --pomodoro-idle:       #6b7280;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :global(:root) {
-      --text-muted:  rgba(235, 235, 245, 0.35);
-      --hover-bg:    rgba(64, 64, 66, 0.55);
-      --track-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  @media (prefers-color-scheme: light) {
-    :global(:root) {
-      --bg-primary:    rgb(242, 242, 247);
-      --bg-secondary:  rgb(230, 230, 235);
-      --text-primary:  rgba(0, 0, 0, 0.9);
-      --text-secondary: rgba(60, 60, 67, 0.7);
-      --text-muted:    rgba(60, 60, 67, 0.4);
-      --border-color:  rgba(60, 60, 67, 0.15);
-      --hover-bg:      rgba(0, 0, 0, 0.05);
-      --track-color:   rgba(0, 0, 0, 0.08);
-    }
+    --pomodoro-focus:      var(--accent-danger);
+    --pomodoro-break:      var(--accent-success);
+    --pomodoro-long-break: var(--accent-primary);
+    --pomodoro-idle:       var(--text-tertiary);
   }
 
   .timer-view {
@@ -407,18 +386,22 @@
     height: 100%;
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     overflow: hidden;
     position: relative;
     outline: none;
+  }
+  .timer-view:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
   }
 
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px 8px;
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-4) var(--space-6) var(--space-3);
+    border-bottom: 1px solid var(--separator);
     flex-shrink: 0;
   }
 
@@ -426,37 +409,37 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 13px;
+    font-size: var(--font-size-md);
     font-weight: 600;
     color: var(--text-primary);
   }
 
-  .title-icon { font-size: 16px; }
+  .title-icon { font-size: var(--font-size-base); }
 
   .paused-badge {
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(107, 114, 128, 0.2);
+    font-size: var(--font-size-2xs);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-xs);
+    background: color-mix(in srgb, var(--text-tertiary) 20%, transparent);
     color: var(--pomodoro-idle);
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
 
-  .header-actions { display: flex; align-items: center; gap: 4px; }
+  .header-actions { display: flex; align-items: center; gap: var(--space-1); }
 
   .icon-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 16px;
-    padding: 4px 6px;
-    border-radius: 6px;
+    font-size: var(--font-size-base);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s;
     line-height: 1;
   }
-  .icon-btn:hover { opacity: 1; background: var(--hover-bg); }
+  .icon-btn:hover { opacity: 1; background: var(--bg-hover); }
 
   .main-content {
     display: flex;
@@ -470,8 +453,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 16px 16px 12px;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-6) var(--space-5);
     flex-shrink: 0;
     width: 240px;
   }
@@ -479,18 +462,18 @@
   .controls {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-2);
     width: 100%;
     align-items: center;
   }
 
   .btn-primary {
     width: 140px;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-md);
     border: none;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-md);
     font-weight: 600;
     background-color: var(--pomodoro-focus);
     color: white;
@@ -504,35 +487,35 @@
 
   .btn-secondary {
     width: 140px;
-    padding: 5px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+    padding: 5px var(--space-5);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--separator);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     background-color: transparent;
     color: var(--text-secondary);
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
   .btn-secondary:hover {
-    background-color: var(--hover-bg);
+    background-color: var(--bg-hover);
     color: var(--text-primary);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: color-mix(in srgb, var(--text-primary) 20%, transparent);
   }
 
   .keyboard-hints {
     display: flex;
-    gap: 10px;
-    font-size: 10px;
-    color: var(--text-muted);
+    gap: var(--space-4);
+    font-size: var(--font-size-2xs);
+    color: var(--text-tertiary);
     margin-top: 2px;
     flex-wrap: wrap;
     justify-content: center;
   }
 
   .skeleton-note {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
   }
 
   .visually-hidden {
@@ -552,7 +535,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid var(--separator);
     min-width: 0;
   }
 
@@ -560,33 +543,33 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px 6px;
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-3) var(--space-5) var(--space-2);
+    border-bottom: 1px solid var(--separator);
     flex-shrink: 0;
   }
 
   h4 {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--text-muted);
+    color: var(--text-tertiary);
   }
 
   .copy-btn {
     background: none;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--separator);
     color: var(--text-secondary);
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 5px;
+    font-size: var(--font-size-xs);
+    padding: 3px var(--space-3);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.15s;
   }
   .copy-btn:hover {
-    background: var(--hover-bg);
+    background: var(--bg-hover);
     color: var(--text-primary);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: color-mix(in srgb, var(--text-primary) 20%, transparent);
   }
 </style>

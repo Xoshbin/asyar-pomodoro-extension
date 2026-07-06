@@ -28,7 +28,7 @@
 <style>
   .session-dots {
     display: flex;
-    gap: 8px;
+    gap: var(--space-3);
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
@@ -38,21 +38,21 @@
   .dot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
-    background-color: var(--dot-empty, rgba(255, 255, 255, 0.15));
-    border: 1.5px solid var(--dot-border, rgba(255, 255, 255, 0.25));
+    border-radius: var(--radius-full);
+    background-color: var(--dot-empty);
+    border: 1.5px solid var(--dot-border);
     transition: background-color 0.3s ease, transform 0.2s ease;
   }
 
   .dot.filled {
-    background-color: var(--pomodoro-focus, #ef4444);
-    border-color: var(--pomodoro-focus, #ef4444);
+    background-color: var(--pomodoro-focus);
+    border-color: var(--pomodoro-focus);
   }
 
   .dot.active {
     background-color: transparent;
-    border-color: var(--pomodoro-focus, #ef4444);
-    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+    border-color: var(--pomodoro-focus);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-danger) 30%, transparent);
     animation: dotPulse 1.5s ease-in-out infinite;
   }
 
