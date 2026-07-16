@@ -1,4 +1,4 @@
-import type { INotificationService } from 'asyar-sdk/contracts';
+import type { IFeedbackService } from 'asyar-sdk/contracts';
 import type { TimerPhase } from './timerEngine';
 
 // Helpers propagate errors to the caller — the worker's invocation sites
@@ -6,20 +6,20 @@ import type { TimerPhase } from './timerEngine';
 // rather than the DevTools console.
 
 export async function notifyFocusComplete(
-  notifService: INotificationService,
+  notifService: IFeedbackService,
   nextPhase: TimerPhase,
   totalSessionsEver: number,
 ): Promise<void> {
   const suffix = nextPhase === 'long-break' ? 'long' : '5-minute';
   const plural = totalSessionsEver === 1 ? '' : 's';
   const body = `Time for a ${suffix} break. You've completed ${totalSessionsEver} session${plural} today.`;
-  await notifService.send({ title: '🍅 Focus session complete!', body });
+  await notifService.sendBackground({ title: '🍅 Focus session complete!', body });
 }
 
 export async function notifyBreakComplete(
-  notifService: INotificationService,
+  notifService: IFeedbackService,
 ): Promise<void> {
-  await notifService.send({
+  await notifService.sendBackground({
     title: '⏰ Break over!',
     body: 'Ready to focus? Start your next Pomodoro.',
   });

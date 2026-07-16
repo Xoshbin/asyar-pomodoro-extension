@@ -19,7 +19,7 @@ import type {
   Extension,
   ExtensionContext,
   ILogService,
-  INotificationService,
+  IFeedbackService,
   IStatusBarService,
   ExtensionStateProxy,
 } from 'asyar-sdk/contracts';
@@ -50,7 +50,7 @@ const workerContext = new WorkerExtensionContext();
 workerContext.setExtensionId(extensionId);
 
 const log = workerContext.getService<ILogService>('log');
-const notifier = workerContext.getService<INotificationService>('notifications');
+const notifier = workerContext.getService<IFeedbackService>('feedback');
 const statusBar = workerContext.getService<IStatusBarService>('statusBar');
 const stateProxy = workerContext.getService<ExtensionStateProxy>('state');
 
