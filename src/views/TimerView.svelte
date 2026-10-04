@@ -7,17 +7,14 @@
     ExtensionStateProxy,
   } from 'asyar-sdk/view';
   import { ActionContext, ClipboardItemType } from 'asyar-sdk/view';
+  import type { IOpenerService } from 'asyar-sdk/contracts';
 
-  import type {
-    TimerState,
-    TimerPhase,
-    HistoryEntry,
-  } from '../lib/timerEngine';
+  import type { TimerState, TimerPhase, HistoryEntry } from '../lib/timerEngine';
   import { buildSummaryText } from '../lib/summary';
 
   import CircularProgress from '../components/CircularProgress.svelte';
-  import SessionDots      from '../components/SessionDots.svelte';
-  import HistoryList      from '../components/HistoryList.svelte';
+  import SessionDots from '../components/SessionDots.svelte';
+  import HistoryList from '../components/HistoryList.svelte';
 
   interface Props {
     context: ExtensionContext;
@@ -27,26 +24,26 @@
   const extensionId = 'org.asyar.pomodoro';
   const ACTION_CLEAR_HISTORY = 'org.asyar.pomodoro:view:clear-history';
 
-  const stateProxy    = $derived(context.getService<ExtensionStateProxy>('state'));
+  const stateProxy = $derived(context.getService<ExtensionStateProxy>('state'));
   const actionService = $derived(context.getService<IActionService>('actions'));
-  const clipboardSvc  = $derived(context.getService<IClipboardHistoryService>('clipboard'));
+  const clipboardSvc = $derived(context.getService<IClipboardHistoryService>('clipboard'));
 
   // ---------------------------------------------------------------------------
   // Reactive state — all worker-owned; view reads + subscribes.
   // ---------------------------------------------------------------------------
   let timer: TimerState | null = $state(null);
-  let history: HistoryEntry[]  = $state([]);
-  let now: number              = $state(Date.now());
-  let searchQuery              = $state('');
-  let showHistory              = $state(true);
+  let history: HistoryEntry[] = $state([]);
+  let now: number = $state(Date.now());
+  let searchQuery = $state('');
+  let showHistory = $state(true);
 
   // ---------------------------------------------------------------------------
   // Derived display values — computed locally, no cross-boundary traffic.
   // ---------------------------------------------------------------------------
-  const isRunning   = $derived(timer?.isRunning ?? false);
+  const isRunning = $derived(timer?.isRunning ?? false);
   const phase: TimerPhase = $derived(timer?.phase ?? 'idle');
-  const totalSecs   = $derived(timer?.totalSeconds ?? 1);
-  const sessions    = $derived(timer?.sessionsCompleted ?? 0);
+  const totalSecs = $derived(timer?.totalSeconds ?? 1);
+  const sessions = $derived(timer?.sessionsCompleted ?? 0);
 
   const remainingSeconds = $derived.by(() => {
     if (!timer) return 0;
@@ -65,49 +62,49 @@
   });
 
   const isPaused = $derived(
-    !!timer &&
-      !timer.isRunning &&
-      timer.phase !== 'idle' &&
-      timer.pausedRemainingSeconds !== null,
+    !!timer && !timer.isRunning && timer.phase !== 'idle' && timer.pausedRemainingSeconds !== null,
   );
 
   // ---------------------------------------------------------------------------
-  // Bootstrap: get initial state + subscribe + local tick + actions.
+  // Subscriptions + mount lifecycle.
   // ---------------------------------------------------------------------------
   onMount(() => {
-    let cleanup: Array<() => void | Promise<void>> = [];
     let active = true;
+    const cleanup: Array<() => void> = [];
 
     (async () => {
-      const [initialTimer, initialHistory, unsubTimer, unsubHistory] =
-        await Promise.all([
-          stateProxy.get('timer'),
-          stateProxy.get('history'),
-          stateProxy.subscribe('timer', (v) => {
-            if (!active) return;
-            timer = (v as TimerState | null) ?? null;
-          }),
-          stateProxy.subscribe('history', (v) => {
-            if (!active) return;
-            history = Array.isArray(v) ? (v as HistoryEntry[]) : [];
-          }),
-        ]);
-
-      if (!active) {
-        void unsubTimer();
-        void unsubHistory();
-        return;
+      try {
+        const initial = (await stateProxy.get('state')) as TimerState | null;
+        if (active && initial) timer = initial;
+      } catch {
+        // Worker may not have written state yet — subscription will pick it up.
       }
 
-      timer   = (initialTimer as TimerState | null) ?? null;
-      history = Array.isArray(initialHistory) ? (initialHistory as HistoryEntry[]) : [];
+      try {
+        const initialHistory = (await stateProxy.get('history')) as HistoryEntry[] | null;
+        if (active && initialHistory) history = initialHistory;
+      } catch {
+        // Same as above.
+      }
 
-      cleanup.push(unsubTimer, unsubHistory);
-    })().catch((err) => {
-      context.getService<import('asyar-sdk/view').ILogService>('log').error(
-        `TimerView bootstrap failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    });
+      try {
+        const unsub = await stateProxy.subscribe('state', (next) => {
+          if (active) timer = (next as TimerState | null) ?? null;
+        });
+        cleanup.push(() => void unsub());
+      } catch {
+        // Fall back to periodic pull if subscription fails.
+      }
+
+      try {
+        const unsub = await stateProxy.subscribe('history', (next) => {
+          if (active) history = (next as HistoryEntry[] | null) ?? [];
+        });
+        cleanup.push(() => void unsub());
+      } catch {
+        // Same fallback.
+      }
+    })();
 
     const tickHandle = window.setInterval(() => {
       now = Date.now();
@@ -118,7 +115,6 @@
     cleanup.push(() => window.removeEventListener('message', handleHostMessage));
 
     registerViewActions();
-    cleanup.push(() => unregisterViewActions());
 
     return () => {
       active = false;
@@ -159,10 +155,6 @@
     });
   }
 
-  function unregisterViewActions(): void {
-    try { actionService.unregisterAction(ACTION_CLEAR_HISTORY); } catch { /* noop */ }
-  }
-
   async function writeSummaryToClipboard(): Promise<void> {
     const text = buildSummaryText({ now: Date.now(), history });
     await clipboardSvc.writeToClipboard({
@@ -175,13 +167,8 @@
   }
 
   function openExternal(url: string): void {
-    const messageId =
-      Math.random().toString(36).slice(2) +
-      Math.random().toString(36).slice(2);
-    window.parent.postMessage(
-      { type: 'asyar:api:opener:open', payload: { url }, messageId, extensionId },
-      '*',
-    );
+    const opener = context.getService<IOpenerService>('opener');
+    void opener.openUrl(url);
   }
 
   // ---------------------------------------------------------------------------
@@ -219,7 +206,13 @@
         window.parent.postMessage(
           {
             type: 'asyar:extension:keydown',
-            payload: { key: 'Escape', metaKey: false, ctrlKey: false, shiftKey: false, altKey: false },
+            payload: {
+              key: 'Escape',
+              metaKey: false,
+              ctrlKey: false,
+              shiftKey: false,
+              altKey: false,
+            },
           },
           '*',
         );
@@ -239,8 +232,12 @@
   function handlePrimaryButton() {
     void (isRunning ? context.request('pause', {}) : context.request('start', {}));
   }
-  function handleStop()  { void context.request('stop', {}); }
-  function handleSkip()  { void context.request('skip', {}); }
+  function handleStop() {
+    void context.request('stop', {});
+  }
+  function handleSkip() {
+    void context.request('skip', {});
+  }
 
   // ---------------------------------------------------------------------------
   // Copy button in-view (parity with the ⌘K copy-summary action).
@@ -301,8 +298,8 @@
       <CircularProgress
         secondsRemaining={remainingSeconds}
         totalSeconds={totalSecs}
-        phase={phase}
-        isRunning={isRunning}
+        {phase}
+        {isRunning}
       />
 
       <SessionDots
@@ -327,7 +324,12 @@
           <button class="btn-secondary" onclick={handleStop} aria-label="Stop timer" title="S">
             ■ Stop
           </button>
-          <button class="btn-secondary" onclick={handleSkip} aria-label="Skip to next phase" title="N">
+          <button
+            class="btn-secondary"
+            onclick={handleSkip}
+            aria-label="Skip to next phase"
+            title="N"
+          >
             ⏭ Skip
           </button>
         {/if}
@@ -362,10 +364,7 @@
           {/if}
         </div>
 
-        <HistoryList
-          history={history}
-          searchQuery={searchQuery}
-        />
+        <HistoryList {history} {searchQuery} />
       </div>
     {/if}
   </div>
@@ -373,10 +372,10 @@
 
 <style>
   :global(:root) {
-    --pomodoro-focus:      var(--accent-danger);
-    --pomodoro-break:      var(--accent-success);
+    --pomodoro-focus: var(--accent-danger);
+    --pomodoro-break: var(--accent-success);
     --pomodoro-long-break: var(--accent-primary);
-    --pomodoro-idle:       var(--text-tertiary);
+    --pomodoro-idle: var(--text-tertiary);
   }
 
   .timer-view {
@@ -414,7 +413,9 @@
     color: var(--text-primary);
   }
 
-  .title-icon { font-size: var(--font-size-base); }
+  .title-icon {
+    font-size: var(--font-size-base);
+  }
 
   .paused-badge {
     font-size: var(--font-size-2xs);
@@ -426,7 +427,11 @@
     letter-spacing: 0.4px;
   }
 
-  .header-actions { display: flex; align-items: center; gap: var(--space-1); }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
 
   .icon-btn {
     background: none;
@@ -436,10 +441,15 @@
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s;
+    transition:
+      opacity 0.15s,
+      background 0.15s;
     line-height: 1;
   }
-  .icon-btn:hover { opacity: 1; background: var(--bg-hover); }
+  .icon-btn:hover {
+    opacity: 1;
+    background: var(--bg-hover);
+  }
 
   .main-content {
     display: flex;
@@ -477,13 +487,24 @@
     font-weight: 600;
     background-color: var(--pomodoro-focus);
     color: white;
-    transition: opacity 0.15s, transform 0.1s;
+    transition:
+      opacity 0.15s,
+      transform 0.1s;
     letter-spacing: 0.3px;
   }
-  .btn-primary.running { background-color: var(--pomodoro-idle); }
-  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
-  .btn-primary:active:not(:disabled) { transform: scale(0.97); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary.running {
+    background-color: var(--pomodoro-idle);
+  }
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.85;
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .btn-secondary {
     width: 140px;
@@ -495,7 +516,10 @@
     font-weight: 500;
     background-color: transparent;
     color: var(--text-secondary);
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      border-color 0.15s;
   }
   .btn-secondary:hover {
     background-color: var(--bg-hover);

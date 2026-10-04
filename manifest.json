@@ -7,11 +7,7 @@
   "searchable": true,
   "icon": "🍅",
   "asyarSdk": "^4.3.0",
-  "permissions": [
-    "notifications:send",
-    "clipboard:write",
-    "shell:open-url"
-  ],
+  "permissions": ["notifications:send", "clipboard:write", "shell:open-url"],
   "preferences": [
     {
       "name": "focusMinutes",
@@ -95,7 +91,8 @@
       "schedule": {
         "intervalSeconds": 60
       },
-      "mode": "background"
+      "mode": "background",
+      "searchable": false
     },
     {
       "id": "pause-timer",

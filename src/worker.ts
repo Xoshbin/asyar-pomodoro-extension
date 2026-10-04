@@ -11,10 +11,7 @@
 // (pure types — service interfaces + the Extension interface).
 // ---------------------------------------------------------------------------
 
-import {
-  ExtensionContext as WorkerExtensionContext,
-  extensionBridge,
-} from 'asyar-sdk/worker';
+import { ExtensionContext as WorkerExtensionContext, extensionBridge } from 'asyar-sdk/worker';
 import type {
   Extension,
   ExtensionContext,
@@ -25,26 +22,13 @@ import type {
 } from 'asyar-sdk/contracts';
 
 import manifest from '../manifest.json';
-import {
-  TimerEngine,
-  formatTime,
-  type TimerPhase,
-  type TimerState,
-} from './lib/timerEngine';
-import {
-  notifyFocusComplete,
-  notifyBreakComplete,
-} from './lib/notifications';
+import { TimerEngine, formatTime, type TimerPhase, type TimerState } from './lib/timerEngine';
+import { notifyFocusComplete, notifyBreakComplete } from './lib/notifications';
 
 // ---------------------------------------------------------------------------
 // Extension identity (same URL-parsing the other extensions use).
 // ---------------------------------------------------------------------------
-const extensionId =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === 'asyar-extension.localhost'
-    ? window.location.pathname.split('/').filter(Boolean)[0] ||
-      'org.asyar.pomodoro'
-    : window.location.hostname || 'org.asyar.pomodoro';
+const extensionId = manifest.id;
 
 const workerContext = new WorkerExtensionContext();
 workerContext.setExtensionId(extensionId);
@@ -66,8 +50,8 @@ const engine = new TimerEngine({
   now: () => Date.now(),
   onPhaseComplete: (completed: TimerPhase, next: TimerPhase, snapshot: TimerState) => {
     if (completed === 'focus') {
-      void notifyFocusComplete(notifier, next, snapshot.totalSessionsEver).catch(
-        (err: unknown) => log.error(`notifyFocusComplete: ${describe(err)}`),
+      void notifyFocusComplete(notifier, next, snapshot.totalSessionsEver).catch((err: unknown) =>
+        log.error(`notifyFocusComplete: ${describe(err)}`),
       );
     } else if (completed === 'short-break' || completed === 'long-break') {
       void notifyBreakComplete(notifier).catch((err: unknown) =>
@@ -92,10 +76,7 @@ function trayIconFor(phase: TimerPhase): string {
 
 function trayTextFor(state: TimerState): string {
   if (state.isRunning && state.phaseEndsAt !== null) {
-    const remaining = Math.max(
-      0,
-      Math.ceil((state.phaseEndsAt - Date.now()) / 1000),
-    );
+    const remaining = Math.max(0, Math.ceil((state.phaseEndsAt - Date.now()) / 1000));
     return formatTime(remaining);
   }
   if (state.pausedRemainingSeconds !== null) {
@@ -230,10 +211,6 @@ void (async () => {
     log.error(`[${extensionId}] worker activate failed: ${describe(err)}`);
   }
 })();
-
-window.addEventListener('beforeunload', () => {
-  void pomodoro.deactivate();
-});
 
 function describe(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
