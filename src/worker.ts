@@ -22,8 +22,9 @@ import type {
 } from 'asyar-sdk/contracts';
 
 import manifest from '../manifest.json';
-import { TimerEngine, formatTime, type TimerPhase, type TimerState } from './lib/timerEngine';
+import { TimerEngine, type TimerPhase, type TimerState } from './lib/timerEngine';
 import { notifyFocusComplete, notifyBreakComplete } from './lib/notifications';
+import { PomodoroTray } from './lib/tray';
 
 // ---------------------------------------------------------------------------
 // Extension identity (same URL-parsing the other extensions use).
@@ -64,50 +65,8 @@ const engine = new TimerEngine({
 // ---------------------------------------------------------------------------
 // Tray item.
 // ---------------------------------------------------------------------------
-const TRAY_ITEM_ID = 'timer-status';
-let trayRegistered = false;
-
-function trayIconFor(phase: TimerPhase): string {
-  if (phase === 'focus') return '🍅';
-  if (phase === 'short-break') return '☕';
-  if (phase === 'long-break') return '🛋️';
-  return '🍅';
-}
-
-function trayTextFor(state: TimerState): string {
-  if (state.isRunning && state.phaseEndsAt !== null) {
-    const remaining = Math.max(0, Math.ceil((state.phaseEndsAt - Date.now()) / 1000));
-    return formatTime(remaining);
-  }
-  if (state.pausedRemainingSeconds !== null) {
-    return `⏸ ${formatTime(state.pausedRemainingSeconds)}`;
-  }
-  return formatTime(state.totalSeconds);
-}
-
-function updateTray(state: TimerState): void {
-  if (state.phase === 'idle') {
-    if (trayRegistered) {
-      statusBar.unregisterItem(TRAY_ITEM_ID);
-      trayRegistered = false;
-    }
-    return;
-  }
-
-  const item = {
-    id: TRAY_ITEM_ID,
-    icon: trayIconFor(state.phase),
-    text: trayTextFor(state),
-  };
-  if (trayRegistered) {
-    statusBar.updateItem(TRAY_ITEM_ID, { icon: item.icon, text: item.text });
-  } else {
-    statusBar.registerItem(item);
-    trayRegistered = true;
-  }
-}
-
-engine.onTransition(updateTray);
+const tray = new PomodoroTray(statusBar, () => engine.getState(), () => Date.now());
+engine.onTransition((state) => tray.sync(state));
 
 // ---------------------------------------------------------------------------
 // Extension impl — wires commands.
@@ -121,13 +80,10 @@ class PomodoroWorkerExtension implements Extension {
 
   async deactivate(): Promise<void> {
     engine.destroy();
-    if (trayRegistered) {
-      try {
-        statusBar.unregisterItem(TRAY_ITEM_ID);
-      } catch {
-        // Launcher may have already torn the item down.
-      }
-      trayRegistered = false;
+    try {
+      tray.dispose();
+    } catch {
+      // Launcher may have already torn the item down.
     }
   }
 
