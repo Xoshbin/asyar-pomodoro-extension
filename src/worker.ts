@@ -134,6 +134,9 @@ extensionBridge.registerExtensionImplementation(extensionId, pomodoro);
 workerContext.onRequest<Record<string, never>, void>('start', async () => {
   await engine.start();
 });
+workerContext.onRequest<{ phase?: TimerPhase; minutes?: number }, void>('startPhase', async (payload) => {
+  await engine.startPhase(payload?.phase, payload?.minutes);
+});
 workerContext.onRequest<Record<string, never>, void>('pause', async () => {
   await engine.pause();
 });

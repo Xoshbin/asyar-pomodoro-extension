@@ -82,7 +82,17 @@
       "description": "Open the timer view with live countdown",
       "icon": "🍅",
       "mode": "view",
-      "component": "TimerView"
+      "component": "TimerView",
+      "searchBarAccessory": {
+        "type": "dropdown",
+        "default": "all",
+        "options": [
+          { "value": "all", "title": "All Activity" },
+          { "value": "focus", "title": "Focus Only" },
+          { "value": "breaks", "title": "Breaks Only" },
+          { "value": "stats", "title": "Today's Stats" }
+        ]
+      }
     },
     {
       "id": "tick",

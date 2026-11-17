@@ -21,6 +21,7 @@ import {
   ExtensionContext,
   extensionBridge,
   registerIconElement,
+  searchBarAccessory,
   type Extension,
   type IExtensionManager,
 } from 'asyar-sdk/view';
@@ -98,6 +99,6 @@ const target = document.getElementById('app');
 if (viewName === 'TimerView' && target) {
   mount(TimerView, {
     target,
-    props: { context },
+    props: { context, searchBarAccessory },
   });
 }

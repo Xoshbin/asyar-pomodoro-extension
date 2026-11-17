@@ -203,6 +203,29 @@ export class TimerEngine {
     this.broadcast();
   }
 
+  async startPhase(phase: TimerPhase = 'focus', minutes?: number): Promise<void> {
+    const now = this.deps.now();
+    const s = this.settings();
+    const targetPhase: TimerPhase = phase === 'idle' ? 'focus' : phase;
+    const durationMins =
+      minutes ??
+      (targetPhase === 'focus'
+        ? s.focusMinutes
+        : targetPhase === 'short-break'
+          ? s.shortBreakMinutes
+          : s.longBreakMinutes);
+
+    this.clearScheduledEnd();
+    this.state.phase = targetPhase;
+    this.state.totalSeconds = Math.max(1, durationMins) * 60;
+    this.state.phaseEndsAt = now + this.state.totalSeconds * 1000;
+    this.state.pausedRemainingSeconds = null;
+    this.state.isRunning = true;
+    this.scheduleEnd();
+    await this.persistState();
+    this.broadcast();
+  }
+
   async resume(): Promise<void> {
     return this.start();
   }
@@ -475,6 +498,7 @@ export class TimerEngine {
 
   private async persistState(): Promise<void> {
     await this.deps.state.set(KEY_TIMER, this.state);
+    await this.deps.state.set('state', this.state);
   }
 
   private async persistHistory(): Promise<void> {

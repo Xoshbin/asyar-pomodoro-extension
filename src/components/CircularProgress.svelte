@@ -1,133 +1,127 @@
 <script lang="ts">
   import type { TimerPhase } from '../lib/timerEngine';
+  import { phaseTheme } from '../lib/phaseTheme';
 
   interface Props {
     secondsRemaining: number;
     totalSeconds: number;
     phase: TimerPhase;
     isRunning: boolean;
+    /** False until the worker's first state snapshot arrives. */
+    ready: boolean;
   }
-  let { secondsRemaining, totalSeconds, phase, isRunning }: Props = $props();
+  let { secondsRemaining, totalSeconds, phase, isRunning, ready }: Props = $props();
 
-  const SIZE          = 200;
-  const STROKE        = 10;
-  const RADIUS        = (SIZE - STROKE) / 2;
+  const SIZE = 196;
+  const STROKE = 9;
+  const RADIUS = (SIZE - STROKE) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-  let ratio       = $derived(totalSeconds > 0 ? secondsRemaining / totalSeconds : 1);
-  let dashOffset  = $derived(CIRCUMFERENCE * (1 - ratio));
-
-  let phaseColor = $derived(
-    phase === 'focus'       ? 'var(--pomodoro-focus)'
-    : phase === 'short-break' ? 'var(--pomodoro-break)'
-    : phase === 'long-break'  ? 'var(--pomodoro-long-break)'
-    : 'var(--pomodoro-idle)'
+  let ratio = $derived(
+    totalSeconds > 0 ? Math.min(1, Math.max(0, secondsRemaining / totalSeconds)) : 1,
   );
+  let dashOffset = $derived(CIRCUMFERENCE * (1 - ratio));
 
-  let phaseLabel = $derived(
-    phase === 'focus'       ? 'FOCUS'
-    : phase === 'short-break' ? 'SHORT BREAK'
-    : phase === 'long-break'  ? 'LONG BREAK'
-    : 'IDLE'
+  let theme = $derived(phaseTheme(phase));
+
+  let minutes = $derived(Math.floor(secondsRemaining / 60));
+  let seconds = $derived(secondsRemaining % 60);
+  let timeDisplay = $derived(
+    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
   );
-
-  let minutes     = $derived(Math.floor(secondsRemaining / 60));
-  let seconds     = $derived(secondsRemaining % 60);
-  let timeDisplay = $derived(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
 </script>
 
-<div class="circular-progress" aria-label="{phaseLabel}: {timeDisplay}">
-  <svg
-    width={SIZE}
-    height={SIZE}
-    viewBox="0 0 {SIZE} {SIZE}"
-    role="img"
-  >
-    <!-- Track ring -->
+<div class="dial" style="--dial-size: {SIZE}px">
+  <svg width={SIZE} height={SIZE} viewBox="0 0 {SIZE} {SIZE}" aria-hidden="true">
     <circle
+      class="track"
       cx={SIZE / 2}
       cy={SIZE / 2}
       r={RADIUS}
       fill="none"
-      stroke="var(--track-color)"
       stroke-width={STROKE}
     />
-
-    <!-- Progress ring — rotated -90° so it starts at the top -->
     <circle
+      class="progress"
+      class:running={isRunning}
       cx={SIZE / 2}
       cy={SIZE / 2}
       r={RADIUS}
       fill="none"
-      stroke={phaseColor}
       stroke-width={STROKE}
       stroke-linecap="round"
       stroke-dasharray={CIRCUMFERENCE}
       stroke-dashoffset={dashOffset}
-      class="progress-ring"
-      class:pulsing={isRunning}
-      style="transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 0.9s linear, stroke 0.3s ease;"
     />
-
-    <!-- Time text -->
-    <text
-      x="50%"
-      y="44%"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      class="time-text"
-      fill="var(--text-primary)"
-    >
-      {timeDisplay}
-    </text>
-
-    <!-- Phase label -->
-    <text
-      x="50%"
-      y="62%"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      class="phase-label"
-      fill={phaseColor}
-    >
-      {phaseLabel}
-    </text>
   </svg>
+
+  <div class="readout">
+    <span class="time" role="timer" aria-live="off">{ready ? timeDisplay : '--:--'}</span>
+    <span class="phase">{theme.label}</span>
+  </div>
 </div>
 
 <style>
-  .circular-progress {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .dial {
+    position: relative;
+    width: var(--dial-size);
+    height: var(--dial-size);
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
     user-select: none;
   }
 
-  .progress-ring {
-    transition: stroke-dashoffset 0.9s linear, stroke 0.3s ease;
+  svg {
+    position: absolute;
+    inset: 0;
+    display: block;
   }
 
-  .time-text {
+  /* The empty well the progress stroke travels around. */
+  .track {
+    stroke: var(--bg-tertiary);
+  }
+
+  .progress {
+    stroke: var(--phase-voice);
+    transform: rotate(-90deg);
+    transform-origin: center;
+    /* A tick lands once a second; the short linear glide keeps the stroke from
+       stepping. Phase jumps (skip, resume) ease across in the same motion. */
+    transition:
+      stroke-dashoffset var(--dur-emerge) linear,
+      stroke var(--dur-quick) var(--ease-travel);
+  }
+
+  .readout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    /* Optical centring: the readout sits a hair below the geometric centre so
+       the countdown reads as the dial's axis, not its top half. */
+    transform: translateY(-2px);
+    pointer-events: none;
+  }
+
+  .time {
     font-family: var(--font-mono);
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -1px;
+    font-size: var(--font-size-display);
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-display);
+    color: var(--text-primary);
   }
 
-  .phase-label {
+  .phase {
     font-family: var(--font-ui);
     font-size: var(--font-size-xs);
     font-weight: 600;
-    letter-spacing: 2px;
+    line-height: 1;
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
-  }
-
-  @keyframes subtlePulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.75; }
-  }
-
-  .pulsing {
-    animation: subtlePulse 2s ease-in-out infinite;
+    color: var(--text-tertiary);
   }
 </style>

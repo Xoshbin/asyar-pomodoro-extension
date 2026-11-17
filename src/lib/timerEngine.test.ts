@@ -143,6 +143,23 @@ describe('TimerEngine — start / pause / resume', () => {
     expect(states.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('startPhase() starts explicit phase and custom minutes', async () => {
+    const { engine, clock, scheduler } = makeEngine();
+    await engine.init();
+    await engine.startPhase('focus', 50);
+    let s = engine.getState();
+    expect(s.phase).toBe('focus');
+    expect(s.isRunning).toBe(true);
+    expect(s.totalSeconds).toBe(50 * 60);
+    expect(s.phaseEndsAt).toBe(clock.now + 50 * 60 * 1000);
+    expect(scheduler.liveCount()).toBe(1);
+
+    await engine.startPhase('short-break');
+    s = engine.getState();
+    expect(s.phase).toBe('short-break');
+    expect(s.totalSeconds).toBe(5 * 60);
+  });
+
   it('start() while running is a no-op', async () => {
     const { engine, scheduler } = makeEngine();
     await engine.init();

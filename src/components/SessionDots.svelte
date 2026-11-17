@@ -1,63 +1,81 @@
 <script lang="ts">
   interface Props {
-    /** Number of focus sessions completed in the current cycle. */
+    /** Focus sessions completed in the current cycle. */
     sessionsCompleted: number;
-    /** Total sessions before a long break (from settings). */
+    /** Sessions in one cycle before a long break (from settings). */
     sessionsBeforeLongBreak: number;
-    /** Whether a focus session is currently running. */
+    /** Whether a focus session is running right now. */
     isCurrentlyFocus: boolean;
   }
   let { sessionsCompleted, sessionsBeforeLongBreak, isCurrentlyFocus }: Props = $props();
+
+  let total = $derived(Math.max(1, Math.round(sessionsBeforeLongBreak)));
+  let dots = $derived(Array.from({ length: total }, (_, i) => i));
 </script>
 
-<div class="session-dots" aria-label="{sessionsCompleted} of {sessionsBeforeLongBreak} sessions completed">
-  {#each Array(sessionsBeforeLongBreak) as _, i}
-    <div
+<div
+  class="session-dots"
+  role="img"
+  aria-label="{sessionsCompleted} of {total} focus sessions completed toward a long break"
+>
+  {#each dots as i (i)}
+    <span
       class="dot"
       class:filled={i < sessionsCompleted}
       class:active={isCurrentlyFocus && i === sessionsCompleted}
-      title={i < sessionsCompleted
-        ? `Session ${i + 1} complete`
-        : isCurrentlyFocus && i === sessionsCompleted
-          ? 'In progress'
-          : `Session ${i + 1}`}
-    ></div>
+      aria-hidden="true"
+    ></span>
   {/each}
 </div>
 
 <style>
   .session-dots {
     display: flex;
-    gap: var(--space-3);
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    max-width: 180px;
+    gap: var(--space-3);
   }
 
   .dot {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: var(--radius-full);
-    background-color: var(--dot-empty);
-    border: 1.5px solid var(--dot-border);
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    /* Future sessions are recessed wells, not empty outlines — the eye reads a
+       set of four positions to fill, not four checkboxes. */
+    background: var(--bg-tertiary);
+    box-shadow: inset 0 0 0 1px var(--border-color);
+    transition:
+      background var(--dur-quick) var(--ease-travel),
+      box-shadow var(--dur-quick) var(--ease-travel),
+      transform var(--dur-quick) var(--ease-travel);
   }
 
   .dot.filled {
-    background-color: var(--pomodoro-focus);
-    border-color: var(--pomodoro-focus);
+    background: var(--phase-voice);
+    box-shadow: none;
   }
 
   .dot.active {
-    background-color: transparent;
-    border-color: var(--pomodoro-focus);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-danger) 30%, transparent);
-    animation: dotPulse 1.5s ease-in-out infinite;
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--phase-voice);
+    animation: dot-breathe 2.4s var(--ease-travel) infinite;
   }
 
-  @keyframes dotPulse {
-    0%, 100% { transform: scale(1); }
-    50%       { transform: scale(1.2); }
+  @keyframes dot-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.28);
+      opacity: 0.55;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot.active {
+      animation: none;
+    }
   }
 </style>
