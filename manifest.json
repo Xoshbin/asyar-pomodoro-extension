@@ -7,7 +7,11 @@
   "searchable": true,
   "icon": "assets/icon.png",
   "asyarSdk": "^4.17.0",
-  "permissions": ["notifications:send", "clipboard:write", "shell:open-url"],
+  "permissions": [
+    "notifications:send",
+    "clipboard:write",
+    "shell:open-url"
+  ],
   "preferences": [
     {
       "name": "focusMinutes",
@@ -80,17 +84,28 @@
       "id": "open-timer",
       "name": "Pomodoro Timer",
       "description": "Open the timer view with live countdown",
-      "icon": "🍅",
       "mode": "view",
       "component": "TimerView",
       "searchBarAccessory": {
         "type": "dropdown",
         "default": "all",
         "options": [
-          { "value": "all", "title": "All Activity" },
-          { "value": "focus", "title": "Focus Only" },
-          { "value": "breaks", "title": "Breaks Only" },
-          { "value": "stats", "title": "Today's Stats" }
+          {
+            "value": "all",
+            "title": "All Activity"
+          },
+          {
+            "value": "focus",
+            "title": "Focus Only"
+          },
+          {
+            "value": "breaks",
+            "title": "Breaks Only"
+          },
+          {
+            "value": "stats",
+            "title": "Today's Stats"
+          }
         ]
       }
     },
