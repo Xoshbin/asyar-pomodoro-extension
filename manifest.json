@@ -151,5 +151,11 @@
   "type": "extension",
   "background": {
     "main": "dist/worker.js"
-  }
+  },
+  "category": "productivity",
+  "platforms": [
+    "macos",
+    "windows",
+    "linux"
+  ]
 }
